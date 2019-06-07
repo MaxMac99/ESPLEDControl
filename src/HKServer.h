@@ -54,13 +54,23 @@ private:
     int setupMDNS();
 
     bool received(HKClient *client);
-    static byte *decrypt(HKClient *client, size_t &decryptedSize);
-    static void hkdf(byte *target, byte *ikm, uint8_t ikmLength, byte *salt, uint8_t saltLength, byte *info, uint8_t infoLength);
-    static void sendTLVResponse(std::vector<HKTLV *> &message, HKClient *client);
-    void sendTLVError(byte state, TLVError error, HKClient *client);
+    void reply(HKClient *client, byte *message, size_t messageSize);
+    static void sendEncrypted(HKClient *client, byte *message, size_t messageSize);
+    static byte *receivedDecrypted(HKClient *client, size_t &decryptedSize);
+    void sendTLVResponse(HKClient *client, std::vector<HKTLV *> &message);
+    void sendTLVError(HKClient *client, byte state, TLVError error);
 
-    void onPairSetup(const std::vector<byte> &body, HKClient *client);
-    void onPairVerify(const std::vector<byte> &body, HKClient *client);
+    static void hkdf(byte *target, byte *ikm, uint8_t ikmLength, byte *salt, uint8_t saltLength, byte *info, uint8_t infoLength);
+
+    void onPairSetup(HKClient *client, const std::vector<byte> &body);
+    void onPairVerify(HKClient *client, const std::vector<byte> &body);
+    void onIdentify(HKClient *client);
+    void onGetAccessories(HKClient *client);
+    void onGetCharacteristics(HKClient *client);
+    void onUpdateCharacteristics(HKClient *client, const std::vector<byte> &body);
+    void onPairings(HKClient *client, const std::vector<byte> &body);
+    void onReset(HKClient *client);
+    void onResource(HKClient *client);
 private:
     HomeKit *hk;
 

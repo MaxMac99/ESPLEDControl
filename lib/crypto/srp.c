@@ -381,6 +381,30 @@ uint8_t crypto_verifyAndDecryptAAD(const uint8_t* key, uint8_t* nonce, uint8_t *
     }
 }
 
+void crypto_encryptAndSealAAD(const uint8_t* key, uint8_t* nonce, uint8_t *aad, uint8_t aadLength, uint8_t* plain, uint16_t length, uint8_t* output_buf, uint8_t* output_mac)
+{
+    uint8_t polykey[sizeof(zeros64)];
+    crypto_stream_chacha20_xor(polykey, zeros64, sizeof(zeros64), nonce, key, 0);
+
+    uint8_t aadPadding = (16 - aadLength % 16) % 16;
+    uint8_t padding = (16 - length % 16) % 16;
+    uint8_t message[aadLength + aadPadding + length + padding + 16];
+
+    crypto_stream_chacha20_xor(message + aadLength + aadPadding, plain, length, nonce, key, 1);
+
+    memcpy(message, aad, aadLength);
+    memset(message + aadLength, 0, aadPadding);
+    memset(message + aadLength + aadPadding + length, 0, padding + 16);
+    message[aadLength + aadPadding + length + padding] = (uint8_t)aadLength;
+    message[aadLength + aadPadding + length + padding + 1] = (uint8_t)(aadLength >> 8);
+    message[aadLength + aadPadding + length + padding + 8] = (uint8_t)length;
+    message[aadLength + aadPadding + length + padding + 9] = (uint8_t)(length >> 8);
+
+    crypto_onetimeauth_poly1305(output_mac, message, sizeof(message), polykey);
+
+    memcpy(output_buf, message + aadLength + aadPadding, length);
+}
+
 uint8_t crypto_verifyAndDecrypt(const uint8_t* key, uint8_t* nonce, uint8_t* encrypted, uint8_t length, uint8_t* output_buf, uint8_t* mac)
 {
     uint8_t polykey[sizeof(zeros64)];

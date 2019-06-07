@@ -147,14 +147,14 @@ bool HKServer::received(HKClient *client) {
     byte *data;
     size_t dataPos = 0;
     if (client->encrypted) {
-        data = decrypt(client, dataSize);
+        data = receivedDecrypted(client, dataSize);
     } else {
         dataSize = client->client.available();
         data = (byte *) malloc(dataSize);
         client->client.readBytes(data, dataSize);
     }
 
-    String complete = "";
+    String complete = String((char *) data);
 
     for (size_t i = dataPos; i < dataSize; i++) {
         if (data[i] == '\r') {
@@ -164,8 +164,6 @@ bool HKServer::received(HKClient *client) {
     }
     String req = String((char *)data);
     dataPos += req.length() + 2;
-
-    complete += req + '\n';
 
     int addrStart = req.indexOf(' ');
     int addrEnd = req.indexOf(' ', addrStart + 1);
@@ -210,8 +208,6 @@ bool HKServer::received(HKClient *client) {
             req = String((char *)data + dataPos);
             dataPos += req.length() + 2;
 
-            complete += req + '\n';
-
             if (req == "") {
                 break;
             }
@@ -252,22 +248,34 @@ bool HKServer::received(HKClient *client) {
         }
 
 
+        Serial.println("received: Method=" + methodStr + " URL=" + url + " complete=");
+        Serial.println(complete);
+        Serial.println();
         if (url == "/pair-setup") {
-            onPairSetup(plainBuf, client);
+            onPairSetup(client, plainBuf);
         } else if (url == "/pair-verify") {
-            onPairVerify(plainBuf, client);
+            onPairVerify(client, plainBuf);
         } else {
-            Serial.println("received: Method=" + methodStr + " URL=" + url + " complete=" + complete);
         }
     } else {
-        Serial.println("received: Method=" + methodStr + " URL=" + url + " complete=" + complete);
+        Serial.println("received: Method=" + methodStr + " URL=" + url + " complete=");
+        Serial.println(complete);
+        Serial.println();
     }
 
     free(data);
     return true;
 }
 
-byte *HKServer::decrypt(HKServer::HKClient *client, size_t &decryptedSize) {
+void HKServer::reply(HKClient *client, byte *message, size_t messageSize) {
+    if (client->encrypted) {
+        sendEncrypted(client, message, messageSize);
+    } else {
+        client->client.write(message, messageSize);
+    }
+}
+
+byte *HKServer::receivedDecrypted(HKServer::HKClient *client, size_t &decryptedSize) {
     if (!client || !client->encrypted) {
         return nullptr;
     }
@@ -312,8 +320,40 @@ byte *HKServer::decrypt(HKServer::HKClient *client, size_t &decryptedSize) {
 
     return decrypted;
 }
+void HKServer::sendEncrypted(HKClient *client, byte *message, size_t messageSize) {
+    if (!client || !client->encrypted || !message || !messageSize) {
+        return;
+    }
+    byte nonce[12];
+    memset(nonce, 0, 12);
 
-void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
+    int payloadOffset = 0;
+
+    while (payloadOffset < messageSize) {
+        size_t chunkSize = messageSize - payloadOffset;
+        if (chunkSize > 1024) {
+            chunkSize = 1024;
+        }
+
+        byte aead[2] = { static_cast<byte>(chunkSize % 256), static_cast<byte>(chunkSize / 256) };
+
+        byte encrypted[2 + chunkSize + 16];
+        memcpy(encrypted, aead, 2);
+
+        byte i = 4;
+        int x = client->countReads++;
+        while (x) {
+            nonce[i++] = x % 256;
+            x /= 256;
+        }
+
+        crypto_encryptAndSealAAD(client->readKey, nonce, aead, 2, message + payloadOffset, chunkSize, encrypted + 2, encrypted + 2 + chunkSize);
+        payloadOffset += chunkSize;
+        client->client.write(encrypted, sizeof(encrypted));
+    }
+}
+
+void HKServer::onPairSetup(HKClient *client, const std::vector<byte> &body) {
     std::vector<HKTLV *> message = HKTLV::parseTLV(body);
 
     uint32_t value = -1;
@@ -331,14 +371,15 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
             if (hk->paired) {
                 Serial.println("Refuse to pair: Already paired");
 
-                sendTLVError(2, TLVErrorUnavailable, client);
+                sendTLVError(client, 2, TLVErrorUnavailable);
+                pairing = false;
                 break;
             }
 
             if (pairing) {
                 Serial.println("Refuse to pair: another pairing in process");
 
-                sendTLVError(2, TLVErrorBusy, client);
+                sendTLVError(client, 2, TLVErrorBusy);
                 break;
             } else {
                 pairing = true;
@@ -354,7 +395,7 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
             message.push_back(new HKTLV(TLVTypePublicKey, srp_getB(), 384));
             message.push_back(new HKTLV(TLVTypeSalt, srp_getSalt(), 16));
 
-            sendTLVResponse(message, client);
+            sendTLVResponse(client, message);
         }
         break;
         case 3: {
@@ -363,7 +404,8 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
             HKTLV* proof = HKTLV::findTLV(message, TLVTypeProof);
             if (!publicKey || !proof) {
                 Serial.println("Could not find Public Key or Proof in Message");
-                sendTLVError(4, TLVErrorAuthentication, client);
+                sendTLVError(client, 4, TLVErrorAuthentication);
+                pairing = false;
                 break;
             }
 
@@ -377,11 +419,12 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
                 message.push_back(new HKTLV(TLVTypeState, 4, 1));
                 message.push_back(new HKTLV(TLVTypeProof, srp_getM2(), 64));
 
-                sendTLVResponse(message, client);
+                sendTLVResponse(client, message);
             } else {
                 //return error
                 Serial.println("SRP Error");
-                sendTLVError(4, TLVErrorAuthentication, client);
+                sendTLVError(client, 4, TLVErrorAuthentication);
+                pairing = false;
             }
         }
         break;
@@ -396,7 +439,8 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
             HKTLV *encryptedTLV = HKTLV::findTLV(message, TLVTypeEncryptedData);
             if (!encryptedTLV) {
                 Serial.println("Failed: Could not find Encrypted Data");
-                sendTLVError(6, TLVErrorAuthentication, client);
+                sendTLVError(client, 6, TLVErrorAuthentication);
+                pairing = false;
                 break;
             }
 
@@ -405,7 +449,8 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
 
             if (!crypto_verifyAndDecrypt(sharedSecret, (byte *) "PS-Msg05", encryptedTLV->getValue(), decryptedDataSize, decryptedData, encryptedTLV->getValue() + decryptedDataSize)) {
                 Serial.println("Decryption failed: MAC not equal");
-                sendTLVError(6, TLVErrorAuthentication, client);
+                sendTLVError(client, 6, TLVErrorAuthentication);
+                pairing = false;
                 break;
             }
 
@@ -413,21 +458,24 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
             HKTLV *deviceId = HKTLV::findTLV(decryptedMessage, TLVTypeIdentifier);
             if (!deviceId) {
                 Serial.println("Decryption failed: Device ID not found in decrypted Message");
-                sendTLVError(6, TLVErrorAuthentication, client);
+                sendTLVError(client, 6, TLVErrorAuthentication);
+                pairing = false;
                 break;
             }
 
             HKTLV *publicKey = HKTLV::findTLV(decryptedMessage, TLVTypePublicKey);
             if (!publicKey) {
                 Serial.println("Decryption failed: Public Key not found in decrypted Message");
-                sendTLVError(6, TLVErrorAuthentication, client);
+                sendTLVError(client, 6, TLVErrorAuthentication);
+                pairing = false;
                 break;
             }
 
             HKTLV *signature = HKTLV::findTLV(decryptedMessage, TLVTypeSignature);
             if (!signature) {
                 Serial.println("Decryption failed: Signature not found in decrypted Message");
-                sendTLVError(6, TLVErrorAuthentication, client);
+                sendTLVError(client, 6, TLVErrorAuthentication);
+                pairing = false;
                 break;
             }
 
@@ -444,7 +492,8 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
 
             if (!Ed25519::verify(signature->getValue(), publicKey->getValue(), deviceInfo, deviceInfoSize)) {
                 Serial.println("Could not verify Ed25519 Device Info, Signature and Public Key");
-                sendTLVError(6, TLVErrorAuthentication, client);
+                sendTLVError(client, 6, TLVErrorAuthentication);
+                pairing = false;
                 break;
             }
 
@@ -484,7 +533,7 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
             message.push_back(new HKTLV(TLVTypeState, 6, 1));
             message.push_back(new HKTLV(TLVTypeEncryptedData, encryptedResponseData, responseData.size() + 16));
 
-            sendTLVResponse(message, client);
+            sendTLVResponse(client, message);
 
             hk->paired = true;
             setupMDNS();
@@ -498,7 +547,7 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
     }
 }
 
-void HKServer::onPairVerify(const std::vector<byte> &body, HKClient *client) {
+void HKServer::onPairVerify(HKClient *client, const std::vector<byte> &body) {
     std::vector<HKTLV *> message = HKTLV::parseTLV(body);
 
     int value = -1;
@@ -556,7 +605,7 @@ void HKServer::onPairVerify(const std::vector<byte> &body, HKClient *client) {
                     new HKTLV(TLVTypeEncryptedData, encryptedResponseData, responseData.size() + 16)
             };
 
-            sendTLVResponse(responseMessage, client);
+            sendTLVResponse(client, responseMessage);
 
             Serial.println("Step 1 complete");
             break;
@@ -620,7 +669,8 @@ void HKServer::onPairVerify(const std::vector<byte> &body, HKClient *client) {
             std::vector<HKTLV *> responseMessage = {
                     new HKTLV(TLVTypeState, 4, 1)
             };
-            sendTLVResponse(responseMessage, client);
+            sendTLVResponse(client, responseMessage);
+
             client->verifyContext = {};
             client->encrypted = true;
         }
@@ -631,7 +681,7 @@ void HKServer::onPairVerify(const std::vector<byte> &body, HKClient *client) {
     }
 }
 
-void HKServer::sendTLVResponse(std::vector<HKTLV *> &message, HKClient *client) {
+void HKServer::sendTLVResponse(HKClient *client, std::vector<HKTLV *> &message) {
     std::vector<byte> payload = HKTLV::formatTLV(message);
 
     String httpHeaders = "HTTP/1.1 200 OK\r\n"
@@ -646,17 +696,16 @@ void HKServer::sendTLVResponse(std::vector<HKTLV *> &message, HKClient *client) 
     memcpy(response, httpHeaders.c_str(), httpHeaders.length());
     memcpy(response + httpHeaders.length(), &payload[0], payload.size());
 
-    client->client.write(response, httpHeaders.length() + payload.size());
+    reply(client, response, httpHeaders.length() + payload.size());
 }
 
-void HKServer::sendTLVError(byte state, TLVError error, HKClient *client) {
+void HKServer::sendTLVError(HKClient *client, byte state, TLVError error) {
     std::vector<HKTLV *> message = {
             new HKTLV(TLVTypeState, state, 1),
             new HKTLV(TLVTypeError, error, 1)
     };
 
-    sendTLVResponse(message, client);
-    pairing = false;
+    sendTLVResponse(client, message);
 }
 
 void HKServer::hkdf(byte *target, byte *ikm, uint8_t ikmLength, byte *salt, uint8_t saltLength, byte *info,
