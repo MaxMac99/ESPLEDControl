@@ -54,9 +54,7 @@ private:
     int setupMDNS();
 
     bool received(HKClient *client);
-    size_t decryptedSize(size_t payloadSize);
-    byte *decrypt(HKClient *client);
-
+    static byte *decrypt(HKClient *client, size_t &decryptedSize);
     static void hkdf(byte *target, byte *ikm, uint8_t ikmLength, byte *salt, uint8_t saltLength, byte *info, uint8_t infoLength);
     static void sendTLVResponse(std::vector<HKTLV *> &message, HKClient *client);
     void sendTLVError(byte state, TLVError error, HKClient *client);

@@ -147,8 +147,7 @@ bool HKServer::received(HKClient *client) {
     byte *data;
     size_t dataPos = 0;
     if (client->encrypted) {
-        dataSize = this->decryptedSize(client->client.available());
-        data = decrypt(client);
+        data = decrypt(client, dataSize);
     } else {
         dataSize = client->client.available();
         data = (byte *) malloc(dataSize);
@@ -268,13 +267,7 @@ bool HKServer::received(HKClient *client) {
     return true;
 }
 
-byte *convertVectorToByte(std::vector<byte> input) {
-    auto result = (byte *) malloc(input.size());
-    memcpy(result, input.data(), input.size());
-    return result;
-}
-
-byte *HKServer::decrypt(HKServer::HKClient *client) {
+byte *HKServer::decrypt(HKServer::HKClient *client, size_t &decryptedSize) {
     if (!client || !client->encrypted) {
         return nullptr;
     }
@@ -283,7 +276,8 @@ byte *HKServer::decrypt(HKServer::HKClient *client) {
     byte encrypted[encryptedSize];
     client->client.readBytes(encrypted, encryptedSize);
 
-    size_t decryptedSize = this->decryptedSize(encryptedSize);
+    const size_t blockSize = 1024 + 16 + 2;
+    decryptedSize = encryptedSize / blockSize * 1024 + encryptedSize % blockSize - 16 - 2;
     auto decrypted = (byte *) malloc(decryptedSize);
 
     byte nonce[12];
@@ -301,7 +295,6 @@ byte *HKServer::decrypt(HKServer::HKClient *client) {
 
         byte i = 4;
         int x = client->countWrites++;
-        Serial.println("x: " + String(x));
         while (x) {
             nonce[i++] = x % 256;
             x /= 256;
@@ -318,11 +311,6 @@ byte *HKServer::decrypt(HKServer::HKClient *client) {
     }
 
     return decrypted;
-}
-
-size_t HKServer::decryptedSize(size_t payloadSize) {
-    const size_t blockSize = 1024 + 16 + 2;
-    return payloadSize / blockSize * 1024 + payloadSize % blockSize - 16 - 2;
 }
 
 void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
@@ -403,7 +391,6 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
             byte sharedSecret[32];
             const char salt1[] = "Pair-Setup-Encrypt-Salt";
             const char info1[] = "Pair-Setup-Encrypt-Info\001";
-            //crypto_hkdf(sharedSecret, (uint8_t *) salt1, sizeof(salt1)-1, (uint8_t *) info1, sizeof(info1)-1, srp_getK(), 64);
             hkdf(sharedSecret, srp_getK(), 64, (uint8_t *) salt1, sizeof(salt1)-1, (uint8_t *) info1, sizeof(info1)-1);
 
             HKTLV *encryptedTLV = HKTLV::findTLV(message, TLVTypeEncryptedData);
@@ -447,7 +434,6 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
             byte deviceX[32];
             const char salt2[] = "Pair-Setup-Controller-Sign-Salt";
             const char info2[] = "Pair-Setup-Controller-Sign-Info\001";
-            //crypto_hkdf(deviceX, (uint8_t *) salt2, sizeof(salt2)-1, (uint8_t *) info2, sizeof(info2)-1, srp_getK(), 64);
             hkdf(deviceX, srp_getK(), 64, (uint8_t *) salt2, sizeof(salt2)-1, (uint8_t *) info2, sizeof(info2)-1);
 
             uint64_t deviceInfoSize = sizeof(deviceX) + deviceId->getSize() + publicKey->getSize();
@@ -473,7 +459,6 @@ void HKServer::onPairSetup(const std::vector<byte> &body, HKClient *client) {
             byte accessoryInfo[accessoryInfoSize];
             const char salt3[] = "Pair-Setup-Accessory-Sign-Salt";
             const char info3[] = "Pair-Setup-Accessory-Sign-Info\001";
-            //crypto_hkdf(accessoryInfo, (uint8_t *) salt3, sizeof(salt3)-1, (uint8_t *) info3, sizeof(info3)-1, srp_getK(), 64);
             hkdf(accessoryInfo, srp_getK(), 64, (uint8_t *) salt3, sizeof(salt3)-1, (uint8_t *) info3, sizeof(info3)-1);
 
             memcpy(accessoryInfo + 32, accessoryId.c_str(), accessoryId.length());
@@ -560,7 +545,6 @@ void HKServer::onPairVerify(const std::vector<byte> &body, HKClient *client) {
 
             const char salt1[] = "Pair-Verify-Encrypt-Salt";
             const char info1[] = "Pair-Verify-Encrypt-Info\001";
-            //crypto_hkdf(client->verifyContext.sessionKey, (byte *) salt1, sizeof(salt1)-1, (byte *) info1, sizeof(info1)-1, client->verifyContext.sharedKey, 32);
             hkdf(client->verifyContext.sessionKey, client->verifyContext.sharedKey, 32, (byte *) salt1, sizeof(salt1)-1, (byte *) info1, sizeof(info1)-1);
 
             byte encryptedResponseData[responseData.size() + 16];
@@ -625,11 +609,9 @@ void HKServer::onPairVerify(const std::vector<byte> &body, HKClient *client) {
 
             const byte salt[] = "Control-Salt";
             const byte readInfo[] = "Control-Read-Encryption-Key\001";
-            //crypto_hkdf(client->readKey, (uint8_t *) salt, sizeof(salt)-1, (uint8_t *) readInfo, sizeof(readInfo)-1, client->verifyContext.sharedKey, 32);
             hkdf(client->readKey, client->verifyContext.sharedKey, 32, (uint8_t *) salt, sizeof(salt)-1, (uint8_t *) readInfo, sizeof(readInfo)-1);
 
             const byte writeInfo[] = "Control-Write-Encryption-Key\001";
-            //crypto_hkdf(client->writeKey, (uint8_t *) salt, sizeof(salt)-1, (uint8_t *) writeInfo, sizeof(writeInfo)-1, client->verifyContext.sharedKey, 32);
             hkdf(client->writeKey, client->verifyContext.sharedKey, 32, (uint8_t *) salt, sizeof(salt)-1, (uint8_t *) writeInfo, sizeof(writeInfo)-1);
 
             client->pairingId = pairingItem->id;
