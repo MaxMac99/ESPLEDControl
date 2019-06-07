@@ -155,7 +155,7 @@ bool HKClient::received() {
     return true;
 }
 
-void HKClient::reply(byte *message, size_t messageSize) {
+void HKClient::send(byte *message, size_t messageSize) {
     if (encrypted) {
         sendEncrypted(message, messageSize);
     } else {
@@ -257,7 +257,7 @@ void HKClient::sendTLVResponse(std::vector<HKTLV *> &message) {
     memcpy(response, httpHeaders.c_str(), httpHeaders.length());
     memcpy(response + httpHeaders.length(), &payload[0], payload.size());
 
-    reply(response, httpHeaders.length() + payload.size());
+    send(response, httpHeaders.length() + payload.size());
 }
 
 void HKClient::sendTLVError(byte state, TLVError error) {

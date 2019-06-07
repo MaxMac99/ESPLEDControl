@@ -4,7 +4,7 @@
 
 #include "HKService.h"
 
-HKService::HKService(HKServiceType type) : serviceType(type), id(0) {
+HKService::HKService(HKServiceType type) : id(0), serviceType(type) {
 
 }
 

@@ -25,8 +25,8 @@ public:
     String getName();
 
     void setAccessory(HKAccessory *accessory);
-    String getAccessoryId();
     HKAccessory *getAccessory();
+    String getAccessoryId();
     int getConfigNumber();
 
     friend class HKClient;

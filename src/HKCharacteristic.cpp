@@ -7,7 +7,7 @@
 #include "HKCharacteristic.h"
 
 HKCharacteristic::HKCharacteristic(HKCharacteristicType type, const HKValue &value, HKPermission permissions,
-                                   String description, HKUnit unit) : type(type), value(value), permissions(permissions), description(std::move(description)), unit(unit), minValue(nullptr), maxValue(nullptr), minStep(nullptr), maxLen(nullptr), maxDataLen(nullptr), validValues(), getter(nullptr), setter(nullptr), id(0) {
+                                   String description, HKUnit unit) : id(0), type(type), value(value), permissions(permissions), description(std::move(description)), unit(unit), minValue(nullptr), maxValue(nullptr), minStep(nullptr), maxLen(nullptr), maxDataLen(nullptr), validValues(), getter(nullptr), setter(nullptr) {
 
 }
 

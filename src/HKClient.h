@@ -33,7 +33,7 @@ public:
 private:
     bool readBytesWithTimeout(size_t maxLength, std::vector<byte> &data, int timeout_ms);
     byte *receivedDecrypted(size_t &decryptedSize);
-    void reply(byte *message, size_t messageSize);
+    void send(byte *message, size_t messageSize);
     void sendEncrypted(byte *message, size_t messageSize);
     void sendTLVResponse(std::vector<HKTLV *> &message);
     void sendTLVError(byte state, TLVError error);
