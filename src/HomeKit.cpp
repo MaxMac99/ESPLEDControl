@@ -5,7 +5,7 @@
 #include "HomeKit.h"
 #include "../lib/crypto/srp.h"
 
-HomeKit::HomeKit(String password, String name) : server(new HKServer(this)), storage(new HKStorage()), accessory(nullptr), password(std::move(password)), name(std::move(name)), paired(false), aid(0), configNumber(1) {
+HomeKit::HomeKit(String password, String name) : storage(new HKStorage()), server(new HKServer(this)), accessory(nullptr), password(std::move(password)), name(std::move(name)), aid(0), configNumber(1) {
 }
 
 HomeKit::~HomeKit() {
@@ -16,10 +16,12 @@ HomeKit::~HomeKit() {
 void HomeKit::setup() {
     Serial.println("AccessoryID: " + storage->getAccessoryId());
     storage->resetPairings();
-    Serial.println("Setup SRP");
+
     srp_init((uint8_t *) password.c_str());
-    Serial.println("pinMessage: " + String((char *) srp_pinMessage()));
+
+    Serial.println("Password: " + String((char *) srp_pinMessage()));
     setupAccessory();
+
     server->setup();
 }
 
@@ -82,4 +84,16 @@ void HomeKit::setupAccessory() {
     }
 
     accessory->setupServices();
+}
+
+String HomeKit::getAccessoryId() {
+    return storage->getAccessoryId();
+}
+
+HKAccessory *HomeKit::getAccessory() {
+    return accessory;
+}
+
+int HomeKit::getConfigNumber() {
+    return configNumber;
 }

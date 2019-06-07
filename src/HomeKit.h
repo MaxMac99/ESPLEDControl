@@ -25,19 +25,21 @@ public:
     String getName();
 
     void setAccessory(HKAccessory *accessory);
+    String getAccessoryId();
+    HKAccessory *getAccessory();
+    int getConfigNumber();
 
-    friend HKServer;
+    friend class HKClient;
 private:
     String generateCustomName();
     void setupAccessory();
 private:
-    HKServer *server;
     HKStorage *storage;
+    HKServer *server;
     HKAccessory *accessory;
 
     String password;
     String name;
-    bool paired;
     unsigned int aid;
     int configNumber;
 };
