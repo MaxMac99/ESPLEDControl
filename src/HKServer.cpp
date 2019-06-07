@@ -353,6 +353,48 @@ void HKServer::sendEncrypted(HKClient *client, byte *message, size_t messageSize
     }
 }
 
+void HKServer::sendTLVResponse(HKClient *client, std::vector<HKTLV *> &message) {
+    std::vector<byte> payload = HKTLV::formatTLV(message);
+
+    String httpHeaders = "HTTP/1.1 200 OK\r\n"
+                         "Content-Type: application/pairing+tlv8\r\n"
+                         "Content-Length: " +
+                         String(payload.size()) +
+                         "\r\n"
+                         "Connection: keep-alive\r\n\r\n";
+
+    uint8_t response[httpHeaders.length() + payload.size()];
+
+    memcpy(response, httpHeaders.c_str(), httpHeaders.length());
+    memcpy(response + httpHeaders.length(), &payload[0], payload.size());
+
+    reply(client, response, httpHeaders.length() + payload.size());
+}
+
+void HKServer::sendTLVError(HKClient *client, byte state, TLVError error) {
+    std::vector<HKTLV *> message = {
+            new HKTLV(TLVTypeState, state, 1),
+            new HKTLV(TLVTypeError, error, 1)
+    };
+
+    sendTLVResponse(client, message);
+}
+
+void HKServer::hkdf(byte *target, byte *ikm, uint8_t ikmLength, byte *salt, uint8_t saltLength, byte *info,
+                    uint8_t infoLength) {
+    byte prk[64];
+    SHA512 sha = SHA512();
+    sha.resetHMAC(salt, saltLength);
+    sha.update(ikm, ikmLength);
+    sha.finalizeHMAC(salt, saltLength, prk, 64);
+
+    sha.reset();
+    sha.clear();
+    sha.resetHMAC(prk, 64);
+    sha.update(info, infoLength);
+    sha.finalizeHMAC(prk, 64, target, 32);
+}
+
 void HKServer::onPairSetup(HKClient *client, const std::vector<byte> &body) {
     std::vector<HKTLV *> message = HKTLV::parseTLV(body);
 
@@ -679,46 +721,4 @@ void HKServer::onPairVerify(HKClient *client, const std::vector<byte> &body) {
             Serial.println("Invalid State");
             break;
     }
-}
-
-void HKServer::sendTLVResponse(HKClient *client, std::vector<HKTLV *> &message) {
-    std::vector<byte> payload = HKTLV::formatTLV(message);
-
-    String httpHeaders = "HTTP/1.1 200 OK\r\n"
-                         "Content-Type: application/pairing+tlv8\r\n"
-                         "Content-Length: " +
-                         String(payload.size()) +
-                         "\r\n"
-                         "Connection: keep-alive\r\n\r\n";
-
-    uint8_t response[httpHeaders.length() + payload.size()];
-
-    memcpy(response, httpHeaders.c_str(), httpHeaders.length());
-    memcpy(response + httpHeaders.length(), &payload[0], payload.size());
-
-    reply(client, response, httpHeaders.length() + payload.size());
-}
-
-void HKServer::sendTLVError(HKClient *client, byte state, TLVError error) {
-    std::vector<HKTLV *> message = {
-            new HKTLV(TLVTypeState, state, 1),
-            new HKTLV(TLVTypeError, error, 1)
-    };
-
-    sendTLVResponse(client, message);
-}
-
-void HKServer::hkdf(byte *target, byte *ikm, uint8_t ikmLength, byte *salt, uint8_t saltLength, byte *info,
-                    uint8_t infoLength) {
-    byte prk[64];
-    SHA512 sha = SHA512();
-    sha.resetHMAC(salt, saltLength);
-    sha.update(ikm, ikmLength);
-    sha.finalizeHMAC(salt, saltLength, prk, 64);
-
-    sha.reset();
-    sha.clear();
-    sha.resetHMAC(prk, 64);
-    sha.update(info, infoLength);
-    sha.finalizeHMAC(prk, 64, target, 32);
 }

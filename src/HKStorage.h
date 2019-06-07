@@ -50,10 +50,11 @@ public:
     String getAccessoryId();
     KeyPair getAccessoryKey();
 
+    static bool isPaired();
     static int addPairing(const char *deviceId, const byte *deviceKey, byte permission);
     static Pairing *findPairing(const char *deviceId);
-    int updatePairing(const String &deviceId, byte permission);
-    int removePairing(const String &deviceId);
+    static int updatePairing(const String &deviceId, byte permission);
+    static int removePairing(const String &deviceId);
 private:
     static int findEmptyBlock();
     void load();

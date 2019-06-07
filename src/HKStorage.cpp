@@ -145,6 +145,20 @@ int HKStorage::findEmptyBlock() {
     return -1;
 }
 
+bool HKStorage::isPaired() {
+    PairingData pairingData{};
+    EEPROM.begin(4096);
+    for (int i = 0; i < MAX_PAIRINGS; i++) {
+        EEPROM.get(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
+        if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
+            continue;
+        }
+        return true;
+    }
+    EEPROM.end();
+    return false;
+}
+
 int HKStorage::addPairing(const char *deviceId, const byte *deviceKey, byte permission) {
     int nextBlockIdx = findEmptyBlock();
     if (nextBlockIdx == -1) {
