@@ -4,9 +4,10 @@
 
 #include "JSON.h"
 
-JSON::JSON(size_t bufferSize, std::function<void(uint8_t *buffer, size_t size, void *context)> onFlush, void *context) : size(bufferSize), pos(0), buffer((byte *) malloc(bufferSize)), state(JSONStateStart), nestingId(0), nesting(), onFlush(std::move(onFlush)), context(context) {}
+JSON::JSON(size_t bufferSize, std::function<void(uint8_t *buffer, size_t size)> onFlush) : size(bufferSize), pos(0), buffer((byte *) malloc(bufferSize)), state(JSONStateStart), nestingId(0), nesting(), onFlush(std::move(onFlush)) {}
 
 JSON::~JSON() {
+    flush();
     free(buffer);
 }
 
@@ -16,7 +17,7 @@ void JSON::flush() {
     }
 
     if (onFlush) {
-        onFlush(buffer, pos, context);
+        onFlush(buffer, pos);
     }
     pos = 0;
 }
@@ -149,7 +150,7 @@ void JSON::endArray() {
     }
 }
 
-void JSON::set(long long value) {
+void JSON::setInt(long long value) {
     if (state == JSONStateError) {
         return;
     }
@@ -177,7 +178,7 @@ void JSON::set(long long value) {
     }
 }
 
-void JSON::set(float value) {
+void JSON::setFloat(float value) {
     if (state == JSONStateError) {
         return;
     }
@@ -205,7 +206,7 @@ void JSON::set(float value) {
     }
 }
 
-void JSON::set(const char *value) {
+void JSON::setString(const char *value) {
     if (state == JSONStateError) {
         return;
     }
@@ -240,11 +241,7 @@ void JSON::set(const char *value) {
     }
 }
 
-void JSON::set(const String& value) {
-    set(value.c_str());
-}
-
-void JSON::set(bool value) {
+void JSON::setBool(bool value) {
     if (state == JSONStateError) {
         return;
     }
@@ -272,7 +269,7 @@ void JSON::set(bool value) {
     }
 }
 
-void JSON::set() {
+void JSON::setNull() {
     if (state == JSONStateError) {
         return;
     }

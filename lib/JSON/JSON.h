@@ -29,7 +29,7 @@ enum JSONNesting {
 
 class JSON {
 public:
-    JSON(size_t bufferSize, std::function<void(uint8_t *buffer, size_t size, void *context)> onFlush, void *context);
+    JSON(size_t bufferSize, std::function<void(uint8_t *buffer, size_t size)> onFlush);
     virtual ~JSON();
     void flush();
     void startObject();
@@ -37,12 +37,11 @@ public:
     void startArray();
     void endArray();
 
-    void set(long long value);
-    void set(float value);
-    void set(const char *value);
-    void set(const String& value);
-    void set(bool value);
-    void set();
+    void setInt(long long value);
+    void setFloat(float value);
+    void setString(const char *value);
+    void setBool(bool value);
+    void setNull();
 
 private:
     void write(const char *format, ...);
@@ -55,8 +54,7 @@ private:
     uint8_t nestingId;
     JSONNesting nesting[JSON_MAX_DEPTH];
 
-    std::function<void(uint8_t *buffer, size_t size, void *context)> onFlush;
-    void *context;
+    std::function<void(uint8_t *buffer, size_t size)> onFlush;
 };
 
 
