@@ -6,6 +6,7 @@
 #define HAP_SERVER_HKSERVICE_H
 
 #include <Arduino.h>
+#include <JSON.h>
 #include "HKCharacteristic.h"
 
 enum HKServiceType {
@@ -52,15 +53,29 @@ public:
     void setupCharacteristics(unsigned int &iid);
 
     HKCharacteristic *getCharacteristic(HKCharacteristicType characteristicType);
-    HKServiceType getServiceType() const;
+    std::vector<HKCharacteristic *> getCharacteristics();
+
     unsigned int getId() const;
+    HKServiceType getServiceType() const;
+    bool isHidden();
+    bool isPrimary();
+    std::vector<HKService *> getLinkedServices();
+
+    HKCharacteristic *findCharacteristic(unsigned int id);
+
+    void serializeToJSON(JSON &json, HKValue *value);
 
     void addCharacteristic(HKCharacteristic *characteristic);
     void setId(unsigned int id);
 
+    void setPrimary(bool primary);
+
 private:
     unsigned int id;
     HKServiceType serviceType;
+    bool hidden;
+    bool primary;
+    std::vector<HKService *> linked;
     std::vector<HKCharacteristic *> characteristics;
 };
 

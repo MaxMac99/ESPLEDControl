@@ -6,6 +6,7 @@
 #define HAP_SERVER_HKACCESSORY_H
 
 #include <Arduino.h>
+#include <JSON.h>
 #include "HKService.h"
 
 enum HKAccessoryCategory {
@@ -46,14 +47,17 @@ class HKAccessory {
 public:
     explicit HKAccessory(HKAccessoryCategory category=AccessoryOther);
 
-    void addInfoService(const String& accName, const String& manufacturerName, const String& modelName, const String& serialNumber);
+    void addInfoService(const String& accName, const String& manufacturerName, const String& modelName, const String& serialNumber, const String &firmwareRevision);
     void addService(HKService *service);
     virtual void identify();
     void setupServices();
 
     HKService *getService(HKServiceType serviceType);
+    std::vector<HKService *> getServices();
+    void serializeToJSON(JSON &json, HKValue *value);
     unsigned int getId() const;
     HKAccessoryCategory getCategory() const;
+    HKCharacteristic *findCharacteristic(unsigned int id);
 
     void setId(unsigned int id);
 private:

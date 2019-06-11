@@ -15,6 +15,8 @@ public:
     ~LEDHomeKit();
     void setup();
     void update();
+    void onOnSet(HKValue value);
+    HKValue onOnGet();
 private:
     void handleSSIDChange(const String& ssid, const String& password);
 private:

@@ -8,8 +8,19 @@
 #include <Arduino.h>
 #include <WiFiClient.h>
 #include <srp.h>
+#include <ChaChaPoly.h>
+#include <JSON.h>
+#include <ArduinoJson.h>
+#include <ESP8266WebServer.h>
 #include "HKTLV.h"
 #include "HKServer.h"
+#include "HKCharacteristic.h"
+
+const char json_200_response_headers[] =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: application/hap+json\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "Connection: keep-alive\r\n\r\n";
 
 struct VerifyContext {
     byte accessorySecretKey[32];
@@ -29,14 +40,21 @@ public:
     ~HKClient() override;
     bool received();
 
+    HKCharacteristic *getCurrentCharacteristic() const;
+
+    HKValue *getCurrentValue() const;
+
     friend class HKServer;
 private:
     bool readBytesWithTimeout(size_t maxLength, std::vector<byte> &data, int timeout_ms);
     byte *receivedDecrypted(size_t &decryptedSize);
     void send(byte *message, size_t messageSize);
+    void sendChunk(byte *message, size_t messageSize);
     void sendEncrypted(byte *message, size_t messageSize);
+
     void sendTLVResponse(std::vector<HKTLV *> &message);
     void sendTLVError(byte state, TLVError error);
+    void send204Response();
 
     static void hkdf(byte *target, byte *ikm, uint8_t ikmLength, byte *salt, uint8_t saltLength, byte *info, uint8_t infoLength);
 
@@ -44,8 +62,8 @@ private:
     void onPairVerify(const std::vector<byte> &body);
     void onIdentify();
     void onGetAccessories();
-    void onGetCharacteristics();
-    void onUpdateCharacteristics(const std::vector<byte> &body);
+    void onGetCharacteristics(String id, bool meta, bool perms, bool type, bool ev);
+    void onUpdateCharacteristics(String jsonBody);
     void onPairings(const std::vector<byte> &body);
     void onReset();
     void onResource();
@@ -53,12 +71,16 @@ private:
     HKServer *server;
     VerifyContext *verifyContext;
     bool encrypted;
+    bool pairing;
     byte readKey[32];
     int countReads;
     byte writeKey[32];
     int countWrites;
     int pairingId;
     byte permission;
+
+    HKCharacteristic *currentCharacteristic;
+    HKValue *currentValue;
 private:
     enum HTTPMethod {
         HTTP_ANY,

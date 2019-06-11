@@ -6,113 +6,115 @@
 #define HAP_SERVER_HKCHARACTERISTIC_H
 
 #include <Arduino.h>
+#include <JSON.h>
+#include <ArduinoJson.h>
 
 enum HKCharacteristicType {
-    CharacteristicAdminOnlyAccess = 0x1,
-    AudioChannels = 0x2,
-    CharacteristicAudioCodexName = 0x3,
-    CharacteristicAudioCodexParameter = 0x4,
-    CharacteristicAudioFeedback = 0x5,
-    CharacteristicAudioPropAttr = 0x6,
-    CharacteristicAudioValAttr = 0x7,
-    CharacteristicBrightness = 0x8,
-    CharacteristicCameraNightVision = 0x9,
-    CharacteristicCameraPan = 0xA,
-    CharacteristicCameraTilt = 0xB,
-    CharacteristicCameraZoom = 0xC,
-    CharacteristicCoolingThreshold = 0xD,
-    CharacteristicCurrentDoorState = 0xE,
-    CharacteristicCurrentHeatCoolMode = 0xF,
-    CharacteristicCurrentHumidity = 0x10,
-    CharacteristicCurrentTemperature = 0x11,
-    CharacteristicHeatingThreshold = 0x12,
-    CharacteristicHue = 0x13,
-    CharacteristicIdentify = 0x14,
-    CharacteristicInputVolume = 0x15,
-    CharacteristicIpCameraStart = 0x16,
-    CharacteristicIpCameraStop = 0x17,
-    CharacteristicLockControlPoint = 0x19,
-    CharacteristicLockAutoTimeout = 0x1A,
-    CharacteristicLockLastAction = 0x1C,
-    CharacteristicLockCurrentState = 0x1D,
-    CharacteristicLockTargetState = 0x1E,
-    CharacteristicLogs = 0x1F,
-    CharacteristicManufactuer = 0x20,
-    CharacteristicModelName = 0x21,
-    CharacteristicMotionDetect = 0x22,
-    CharacteristicServiceName = 0x23,
-    CharacteristicObstruction = 0x24,
-    CharacteristicOn = 0x25,
-    CharacteristicOutletInUse = 0x26,
-    CharacteristicOutputVolume = 0x27,
-    CharacteristicRotationDirection = 0x28,
-    CharacteristicRotationSpeed = 0x29,
-    CharacteristicRtcpExtProp = 0x2A,
-    CharacteristicRtcpVideoPayload = 0x2B,
-    CharacteristicRtcpAudioPayload = 0x2C,
-    CharacteristicRtcpAudioClock = 0x2D,
-    CharacteristicRtcpProtocol = 0x2E,
-    CharacteristicSaturation = 0x2F,
-    CharacteristicSerialNumber = 0x30,
-    CharacteristicSrtpCyptoSuite = 0x31,
-    CharacteristicTargetDoorState = 0x32,
-    CharacteristicTargetHeatCoolMode = 0x33,
-    CharacteristicTargetHumidity = 0x34,
-    CharacteristicTargetTemperature = 0x35,
-    CharacteristicTemperatureUnit = 0x36,
-    CharacteristicVersion = 0x37,
-    CharacteristicVideoCodexName = 0x38,
-    CharacteristicVideoCodexPara = 0x39,
-    CharacteristicVideoMirror = 0x3A,
-    CharacteristicVideoPropAttr = 0x3B,
-    CharacteristicVideoRotation = 0x3C,
-    CharacteristicVideoValAttr = 0x3D,
+    HKCharacteristicAdminOnlyAccess = 0x1,
+    HKCharacteristicAudioChannels = 0x2,
+    HKCharacteristicAudioCodexName = 0x3,
+    HKCharacteristicAudioCodexParameter = 0x4,
+    HKCharacteristicAudioFeedback = 0x5,
+    HKCharacteristicAudioPropAttr = 0x6,
+    HKCharacteristicAudioValAttr = 0x7,
+    HKCharacteristicBrightness = 0x8,
+    HKCharacteristicCameraNightVision = 0x9,
+    HKCharacteristicCameraPan = 0xA,
+    HKCharacteristicCameraTilt = 0xB,
+    HKCharacteristicCameraZoom = 0xC,
+    HKCharacteristicCoolingThreshold = 0xD,
+    HKCharacteristicCurrentDoorState = 0xE,
+    HKCharacteristicCurrentHeatCoolMode = 0xF,
+    HKCharacteristicCurrentHumidity = 0x10,
+    HKCharacteristicCurrentTemperature = 0x11,
+    HKCharacteristicHeatingThreshold = 0x12,
+    HKCharacteristicHue = 0x13,
+    HKCharacteristicIdentify = 0x14,
+    HKCharacteristicInputVolume = 0x15,
+    HKCharacteristicIpCameraStart = 0x16,
+    HKCharacteristicIpCameraStop = 0x17,
+    HKCharacteristicLockControlPoint = 0x19,
+    HKCharacteristicLockAutoTimeout = 0x1A,
+    HKCharacteristicLockLastAction = 0x1C,
+    HKCharacteristicLockCurrentState = 0x1D,
+    HKCharacteristicLockTargetState = 0x1E,
+    HKCharacteristicLogs = 0x1F,
+    HKCharacteristicManufactuer = 0x20,
+    HKCharacteristicModelName = 0x21,
+    HKCharacteristicMotionDetect = 0x22,
+    HKCharacteristicServiceName = 0x23,
+    HKCharacteristicObstruction = 0x24,
+    HKCharacteristicOn = 0x25,
+    HKCharacteristicOutletInUse = 0x26,
+    HKCharacteristicOutputVolume = 0x27,
+    HKCharacteristicRotationDirection = 0x28,
+    HKCharacteristicRotationSpeed = 0x29,
+    HKCharacteristicRtcpExtProp = 0x2A,
+    HKCharacteristicRtcpVideoPayload = 0x2B,
+    HKCharacteristicRtcpAudioPayload = 0x2C,
+    HKCharacteristicRtcpAudioClock = 0x2D,
+    HKCharacteristicRtcpProtocol = 0x2E,
+    HKCharacteristicSaturation = 0x2F,
+    HKCharacteristicSerialNumber = 0x30,
+    HKCharacteristicSrtpCyptoSuite = 0x31,
+    HKCharacteristicTargetDoorState = 0x32,
+    HKCharacteristicTargetHeatCoolMode = 0x33,
+    HKCharacteristicTargetHumidity = 0x34,
+    HKCharacteristicTargetTemperature = 0x35,
+    HKCharacteristicTemperatureUnit = 0x36,
+    HKCharacteristicVersion = 0x37,
+    HKCharacteristicVideoCodexName = 0x38,
+    HKCharacteristicVideoCodexPara = 0x39,
+    HKCharacteristicVideoMirror = 0x3A,
+    HKCharacteristicVideoPropAttr = 0x3B,
+    HKCharacteristicVideoRotation = 0x3C,
+    HKCharacteristicVideoValAttr = 0x3D,
 
 #pragma - The following is only default by the device after iOS 9
 
-    CharacteristicFirmwareRevision = 0x52,
-    CharacteristicHardwareRevision = 0x53,
-    CharacteristicSoftwareRevision = 0x54,
+    HKCharacteristicFirmwareRevision = 0x52,
+    HKCharacteristicHardwareRevision = 0x53,
+    HKCharacteristicSoftwareRevision = 0x54,
 
-    CharacteristicReachable = 0x63,
+    HKCharacteristicReachable = 0x63,
 
-    CharacteristicAirParticulateDensity = 0x64,
-    CharacteristicAirParticulateSize = 0x65,
-    CharacteristicAirQuality = 0x95,
-    CharacteristicCarbonDioxideDetected = 0x92,
-    CharacteristicCarbonMonoxideDetected = 0x69,
-    CharacteristicCarbonDioxideLevel = 0x93,
-    CharacteristicCarbonMonoxideLevel = 0x90,
-    CharacteristicCarbonDioxidePeakLevel = 0x94,
-    CharacteristicCarbonMonoxidePeakLevel = 0x91,
-    CharacteristicSmokeDetected = 0x76,
+    HKCharacteristicAirParticulateDensity = 0x64,
+    HKCharacteristicAirParticulateSize = 0x65,
+    HKCharacteristicAirQuality = 0x95,
+    HKCharacteristicCarbonDioxideDetected = 0x92,
+    HKCharacteristicCarbonMonoxideDetected = 0x69,
+    HKCharacteristicCarbonDioxideLevel = 0x93,
+    HKCharacteristicCarbonMonoxideLevel = 0x90,
+    HKCharacteristicCarbonDioxidePeakLevel = 0x94,
+    HKCharacteristicCarbonMonoxidePeakLevel = 0x91,
+    HKCharacteristicSmokeDetected = 0x76,
 
-    CharacteristicAlarmCurrentState = 0x66,
-    CharacteristicAlarmTargetState = 0x67,
-    CharacteristicBatteryLevel = 0x68,
-    CharacteristicContactSensorState = 0x6A,
-    CharacteristicHoldPosition = 0x6F,
-    CharacteristicLeakDetected = 0x70,
-    CharacteristicOccupancyDetected = 0x71,
+    HKCharacteristicAlarmCurrentState = 0x66,
+    HKCharacteristicAlarmTargetState = 0x67,
+    HKCharacteristicBatteryLevel = 0x68,
+    HKCharacteristicContactSensorState = 0x6A,
+    HKCharacteristicHoldPosition = 0x6F,
+    HKCharacteristicLeakDetected = 0x70,
+    HKCharacteristicOccupancyDetected = 0x71,
 
-    CharacteristicCurrentAmbientLightLevel = 0x6B,
-    CharacteristicCurrentHorizontalTiltAngle = 0x6C,
-    CharacteristicTargetHorizontalTiltAngle = 0x7B,
-    CharacteristicCurrentPosition = 0x6D,
-    CharacteristicTargetPosition = 0x7C,
-    CharacteristicCurrentVerticalTiltAngle = 0x6E,
-    CharacteristicTargetVerticalTiltAngle = 0x7D,
+    HKCharacteristicCurrentAmbientLightLevel = 0x6B,
+    HKCharacteristicCurrentHorizontalTiltAngle = 0x6C,
+    HKCharacteristicTargetHorizontalTiltAngle = 0x7B,
+    HKCharacteristicCurrentPosition = 0x6D,
+    HKCharacteristicTargetPosition = 0x7C,
+    HKCharacteristicCurrentVerticalTiltAngle = 0x6E,
+    HKCharacteristicTargetVerticalTiltAngle = 0x7D,
 
-    CharacteristicPositionState = 0x72,
-    CharacteristicProgrammableSwitchEvent = 0x73,
-    CharacteristicProgrammableSwitchOutputState = 0x74,
+    HKCharacteristicPositionState = 0x72,
+    HKCharacteristicProgrammableSwitchEvent = 0x73,
+    HKCharacteristicProgrammableSwitchOutputState = 0x74,
 
-    CharacteristicSensorActive = 0x75,
-    CharacteristicSensorFault = 0x77,
-    CharacteristicSensorJammed = 0x78,
-    CharacteristicSensorLowBattery = 0x79,
-    CharacteristicSensorTampered = 0x7A,
-    CharacteristicSensorChargingState = 0x8F,
+    HKCharacteristicSensorActive = 0x75,
+    HKCharacteristicSensorFault = 0x77,
+    HKCharacteristicSensorJammed = 0x78,
+    HKCharacteristicSensorLowBattery = 0x79,
+    HKCharacteristicSensorTampered = 0x7A,
+    HKCharacteristicSensorChargingState = 0x8F,
 };
 
 enum HKFormat {
@@ -146,18 +148,87 @@ enum HKPermission {
     PermissionHidden = 32
 };
 
+enum HKCharacteristicFormat {
+    HKCharacteristicFormatType = 1,
+    HKCharacteristicFormatMeta = 2,
+    HKCharacteristicFormatPerms = 4,
+    HKCharacteristicFormatEvents = 8
+};
+
 struct HKValue {
-    bool IsNull : 1;
-    bool IsStatic : 1;
-    HKFormat Format : 6;
+    bool isNull : 1;
+    bool isStatic : 1;
+    HKFormat format : 6;
     union {
-        bool BoolValue;
-        int IntValue;
-        float FloatValue;
-        char *StringValue;
+        bool boolValue;
+        int intValue;
+        float floatValue;
+        const char *stringValue;
         //TLVValues *tlvValues;
         // Data
     };
+    static HKValue setBool(bool value) {
+        HKValue item{};
+        item.format = FormatBool;
+        item.boolValue = value;
+        return item;
+    }
+    static HKValue setInt(int value) {
+        HKValue item{};
+        item.format = FormatBool;
+        item.intValue = value;
+        return item;
+    }
+    static HKValue setFloat(float value) {
+        HKValue item{};
+        item.format = FormatBool;
+        item.floatValue = value;
+        return item;
+    }
+    static HKValue setString(const char *value) {
+        HKValue item{};
+        item.format = FormatBool;
+        item.stringValue = value;
+        return item;
+    }
+    bool operator==(const HKValue& b)
+    {
+        if (isNull != b.isNull) {
+            return false;
+        }
+        if (format != b.format) {
+            return false;
+        }
+
+        switch (format) {
+            case FormatBool:
+                return boolValue == b.boolValue;
+            case FormatUInt8:
+            case FormatUInt16:
+            case FormatUInt32:
+            case FormatUInt64:
+            case FormatInt:
+                return intValue == b.intValue;
+            case FormatFloat:
+                return floatValue == b.floatValue;
+            case FormatString:
+                return !strcmp(stringValue, b.stringValue);
+            case FormatTLV:
+                /*if (!tlvValues && !b.tlvValues) {
+                    return true;
+                }
+                if (!tlvValues || !b.tlvValues) {
+                    return false;
+                }
+                */
+                return false;
+
+            case FormatData:
+                return false;
+            default:
+                return false;
+        }
+    }
 };
 
 struct HKValidValues {
@@ -165,10 +236,24 @@ struct HKValidValues {
     uint8_t *values;
 };
 
+struct HKValidValuesRange {
+    uint8_t start;
+    uint8_t end;
+};
+
+struct HKValidValuesRanges {
+    int count;
+    HKValidValuesRange *ranges;
+};
+
+class HKCharacteristic;
+
+typedef void (*ChangeCallbackFn)(HKCharacteristic *ch, HKValue value, void *context);
+
 class HKCharacteristic {
 public:
-    HKCharacteristic(HKCharacteristicType type, const HKValue &value, HKPermission permissions,
-                     String description, HKUnit unit=UnitNone);
+    HKCharacteristic(HKCharacteristicType type, const HKValue &value, uint8_t permissions,
+                     String description, HKFormat format, HKUnit unit = UnitNone);
 
     HKCharacteristicType getType() const;
     const HKValue &getValue() const;
@@ -184,14 +269,38 @@ public:
     void setSetter(const std::function<void(const HKValue)> &setter);
     void setId(unsigned int id);
 
+    void serializeToJSON(JSON &json, HKValue *jsonValue, unsigned int format = 0xF);
+    void setValue(JsonVariant jsonValue);
+
+    uint8_t getPermissions() const;
+    const String &getDescription() const;
+    HKUnit getUnit() const;
+    HKFormat getFormat() const;
+    float *getMinValue() const;
+    float *getMaxValue() const;
+    float *getMinStep() const;
+    int *getMaxLen() const;
+    int *getMaxDataLen() const;
+    const HKValidValues &getValidValues() const;
+    const HKValidValuesRanges &getValidValuesRanges() const;
+
+    struct ChangeCallback {
+        ChangeCallbackFn function;
+        void *context;
+        ChangeCallback *next;
+    };
+private:
+    static HKValue exOldGetter(const HKCharacteristic *characteristic);
+    static void exOldSetter(const HKCharacteristic *characteristic, HKValue value);
 private:
     unsigned int id;
 
     HKCharacteristicType type;
     HKValue value;
-    HKPermission permissions;
+    uint8_t permissions;
     String description;
     HKUnit unit;
+    HKFormat format;
 
     float *minValue;
     float *maxValue;
@@ -200,9 +309,16 @@ private:
     int *maxDataLen;
 
     HKValidValues validValues;
+    HKValidValuesRanges validValuesRanges;
 
     std::function<HKValue()> getter;
     std::function<void(const HKValue)> setter;
+
+    ChangeCallback *callback;
+    std::function<HKValue(const HKCharacteristic *)> getterEx;
+    std::function<void(const HKCharacteristic *, const HKValue)> setterEx;
+
+    void *context;
 };
 
 

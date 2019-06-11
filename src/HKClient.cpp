@@ -4,10 +4,18 @@
 
 #include "HKClient.h"
 
-HKClient::HKClient(HKServer *server, ClientContext* client) : WiFiClient(client), server(server), verifyContext(nullptr), encrypted(false), readKey(), countReads(0), writeKey(), countWrites(0), pairingId(0), permission(0) {}
+HKClient::HKClient(HKServer *server, ClientContext* client) : WiFiClient(client), server(server), verifyContext(nullptr), encrypted(false), pairing(false), readKey(), countReads(0), writeKey(), countWrites(0), pairingId(0), permission(0), currentCharacteristic(nullptr), currentValue(nullptr) {}
 
 HKClient::~HKClient() {
     delete verifyContext;
+}
+
+HKCharacteristic *HKClient::getCurrentCharacteristic() const {
+    return currentCharacteristic;
+}
+
+HKValue *HKClient::getCurrentValue() const {
+    return currentValue;
 }
 
 bool HKClient::readBytesWithTimeout(size_t maxLength, std::vector<byte> &data, int timeout_ms) {
@@ -31,6 +39,8 @@ bool HKClient::readBytesWithTimeout(size_t maxLength, std::vector<byte> &data, i
 }
 
 bool HKClient::received() {
+    Serial.println("HEAP: " + String(ESP.getFreeHeap()));
+
     size_t dataSize;
     byte *data;
     size_t dataPos = 0;
@@ -72,7 +82,7 @@ bool HKClient::received() {
         url = url.substring(0, hasSearch);
     }
 
-    HTTPMethod  method = HTTP_GET;
+    HTTPMethod method = HTTP_GET;
     if (methodStr == "POST") {
         method = HTTP_POST;
     } else if (methodStr == "PUT") {
@@ -135,20 +145,100 @@ bool HKClient::received() {
             return false;
         }
 
-
-        Serial.println("received: Method=" + methodStr + " URL=" + url + " complete=");
-        Serial.println(complete);
+        Serial.println("------------- Received -------------");
+        Serial.println("Method=" + methodStr + " URL=" + url + " complete=");
+        for (size_t i = 0; i < dataSize; i++) {
+            byte item = *(data + i);
+            if (item == '\r' || item == '\n' || (item >= ' ' && item <= '}' && item != '\\')) {
+                Serial.print((char) item);
+            } else if (item < 0x10) {
+                Serial.print("\\x0" + String(item, HEX));
+            } else {
+                Serial.print("\\x" + String(item, HEX));
+            }
+        }
         Serial.println();
+        Serial.println("----------- End Received -----------");
         if (url == "/pair-setup") {
             onPairSetup(plainBuf);
         } else if (url == "/pair-verify") {
             onPairVerify(plainBuf);
-        } else {
+        } else if (url == "/pairings") {
+            onPairings(plainBuf);
+        } else if (url == "/identify") {
+            onIdentify();
+        } else if (url == "/characteristics") {
+            onUpdateCharacteristics(String((char *) plainBuf.data()));
         }
     } else {
-        Serial.println("received: Method=" + methodStr + " URL=" + url + " complete=");
-        Serial.println(complete);
+        std::map<String, String> queries;
+        while (searchStr.length()) {
+            Serial.println("searchQuery: " + searchStr);
+            int equalPos = searchStr.indexOf('=');
+            int keyEndPos = equalPos;
+            int nextPos = searchStr.indexOf('&');
+            int nextPos2 = searchStr.indexOf(';');
+            if ((nextPos == -1) || (nextPos2 != -1 && nextPos2 < nextPos)) {
+                nextPos = nextPos2;
+            }
+            if ((keyEndPos == -1) || (keyEndPos > nextPos && nextPos != -1)) {
+                keyEndPos = nextPos;
+            }
+            if (keyEndPos == -1) {
+                nextPos = searchStr.length()-1;
+                keyEndPos = searchStr.length();
+            }
+
+            String keyString = searchStr.substring(0, keyEndPos);
+            String valueString;
+            if (keyEndPos < searchStr.length() && keyEndPos < nextPos) {
+                valueString = searchStr.substring(keyEndPos + 1, nextPos);
+            }
+            queries.insert(std::make_pair(keyString, valueString));
+
+            searchStr = searchStr.substring(nextPos + 1);
+        }
+
+        Serial.println("------------- Received -------------");
+        Serial.println("Method=" + methodStr + " URL=" + url + " complete=");
+        for (size_t i = 0; i < dataSize; i++) {
+            byte item = *(data + i);
+            if (item == '\r' || item == '\n' || (item >= ' ' && item <= '}' && item != '\\')) {
+                Serial.print((char) item);
+            } else if (item < 0x10) {
+                Serial.print("\\x0" + String(item, HEX));
+            } else {
+                Serial.print("\\x" + String(item, HEX));
+            }
+        }
         Serial.println();
+        Serial.println("----------- End Received -----------");
+
+        if (url == "/accessories") {
+            onGetAccessories();
+        } else if (url == "/characteristics") {
+            String id;
+            if (queries.find("id") != queries.end()) {
+                id = queries["id"];
+            }
+            bool meta = false;
+            if (queries.find("meta") != queries.end()) {
+                meta = queries["meta"] == "1";
+            }
+            bool perms = false;
+            if (queries.find("perms") != queries.end()) {
+                perms = queries["perms"] == "1";
+            }
+            bool type = false;
+            if (queries.find("type") != queries.end()) {
+                type = queries["type"] == "1";
+            }
+            bool ev = false;
+            if (queries.find("ev") != queries.end()) {
+                ev = queries["ev"] == "1";
+            }
+            onGetCharacteristics(id, meta, perms, type, ev);
+        }
     }
 
     free(data);
@@ -156,11 +246,41 @@ bool HKClient::received() {
 }
 
 void HKClient::send(byte *message, size_t messageSize) {
+    Serial.println("------------- Sending -------------");
+    Serial.println("Message Size: " + String(messageSize));
+    for (size_t i = 0; i < messageSize; i++) {
+        byte item = *(message + i);
+        if (item == '\r' || item == '\n' || (item >= ' ' && item <= '}' && item != '\\')) {
+            Serial.print((char) item);
+        } else if (item < 0x10) {
+            Serial.print("\\x0" + String(item, HEX));
+        } else {
+            Serial.print("\\x" + String(item, HEX));
+        }
+    }
+    Serial.println();
+
     if (encrypted) {
         sendEncrypted(message, messageSize);
     } else {
         write(message, messageSize);
     }
+    Serial.println("----------- End Sending -----------");
+}
+
+void HKClient::sendChunk(byte *message, size_t messageSize) {
+    Serial.println("send chunk size: " + String(messageSize));
+    size_t payloadSize = messageSize + 8;
+    auto payload = (byte *) malloc(payloadSize);
+
+    int offset = snprintf((char *) payload, payloadSize, "%x\r\n", messageSize);
+    memcpy(payload + offset, message, messageSize);
+    payload[offset + messageSize] = '\r';
+    payload[offset + messageSize + 1] = '\n';
+
+    send(payload, offset + messageSize + 2);
+
+    free(payload);
 }
 
 byte *HKClient::receivedDecrypted(size_t &decryptedSize) {
@@ -197,7 +317,13 @@ byte *HKClient::receivedDecrypted(size_t &decryptedSize) {
         }
 
         size_t decryptedLen = decryptedSize - decryptedOffset;
-        if (!crypto_verifyAndDecryptAAD(writeKey, nonce, encryptedMessage + payloadOffset, 2, encryptedMessage + payloadOffset + 2, chunkSize, decrypted, encryptedMessage + payloadOffset + 2 + chunkSize)) {
+
+        ChaChaPoly chaChaPoly = ChaChaPoly();
+        chaChaPoly.setKey(writeKey, 32);
+        chaChaPoly.setIV(nonce, 12);
+        chaChaPoly.addAuthData(encryptedMessage + payloadOffset, 2);
+        chaChaPoly.decrypt(decrypted, encryptedMessage + payloadOffset + 2, chunkSize);
+        if (!chaChaPoly.checkTag(encryptedMessage + payloadOffset + 2 + chunkSize, 16)) {
             Serial.println("Could not verify");
             return nullptr;
         }
@@ -213,6 +339,7 @@ void HKClient::sendEncrypted(byte *message, size_t messageSize) {
     if (!encrypted || !message || !messageSize) {
         return;
     }
+
     byte nonce[12];
     memset(nonce, 0, 12);
 
@@ -236,8 +363,14 @@ void HKClient::sendEncrypted(byte *message, size_t messageSize) {
             x /= 256;
         }
 
-        crypto_encryptAndSealAAD(readKey, nonce, aead, 2, message + payloadOffset, chunkSize, encryptedMessage + 2, encryptedMessage + 2 + chunkSize);
+        ChaChaPoly chaChaPoly = ChaChaPoly();
+        chaChaPoly.setKey(readKey, 32);
+        chaChaPoly.setIV(nonce, 12);
+        chaChaPoly.addAuthData(aead, 2);
+        chaChaPoly.encrypt(encryptedMessage + 2, message + payloadOffset, chunkSize);
+        chaChaPoly.computeTag(encryptedMessage + 2 + chunkSize, 16);
         payloadOffset += chunkSize;
+
         write(encryptedMessage, sizeof(encryptedMessage));
     }
 }
@@ -303,18 +436,17 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
                 Serial.println("Refuse to pair: Already paired");
 
                 sendTLVError(2, TLVErrorUnavailable);
-                server->pairing = false;
+                pairing = false;
                 break;
             }
 
-            if (server->pairing) {
+            if (server->isPairing()) {
                 Serial.println("Refuse to pair: another pairing in process");
 
                 sendTLVError(2, TLVErrorBusy);
                 break;
-            } else {
-                server->pairing = true;
             }
+            pairing = true;
 
             srp_start();
 
@@ -336,7 +468,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             if (!publicKey || !proof) {
                 Serial.println("Could not find Public Key or Proof in Message");
                 sendTLVError(4, TLVErrorAuthentication);
-                server->pairing = false;
+                pairing = false;
                 break;
             }
 
@@ -355,7 +487,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
                 //return error
                 Serial.println("SRP Error");
                 sendTLVError(4, TLVErrorAuthentication);
-                server->pairing = false;
+                pairing = false;
             }
         }
             break;
@@ -371,7 +503,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             if (!encryptedTLV) {
                 Serial.println("Failed: Could not find Encrypted Data");
                 sendTLVError(6, TLVErrorAuthentication);
-                server->pairing = false;
+                pairing = false;
                 break;
             }
 
@@ -381,7 +513,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             if (!crypto_verifyAndDecrypt(sharedSecret, (byte *) "PS-Msg05", encryptedTLV->getValue(), decryptedDataSize, decryptedData, encryptedTLV->getValue() + decryptedDataSize)) {
                 Serial.println("Decryption failed: MAC not equal");
                 sendTLVError(6, TLVErrorAuthentication);
-                server->pairing = false;
+                pairing = false;
                 break;
             }
 
@@ -390,7 +522,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             if (!deviceId) {
                 Serial.println("Decryption failed: Device ID not found in decrypted Message");
                 sendTLVError(6, TLVErrorAuthentication);
-                server->pairing = false;
+                pairing = false;
                 break;
             }
 
@@ -398,7 +530,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             if (!publicKey) {
                 Serial.println("Decryption failed: Public Key not found in decrypted Message");
                 sendTLVError(6, TLVErrorAuthentication);
-                server->pairing = false;
+                pairing = false;
                 break;
             }
 
@@ -406,7 +538,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             if (!signature) {
                 Serial.println("Decryption failed: Signature not found in decrypted Message");
                 sendTLVError(6, TLVErrorAuthentication);
-                server->pairing = false;
+                pairing = false;
                 break;
             }
 
@@ -424,7 +556,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             if (!Ed25519::verify(signature->getValue(), publicKey->getValue(), deviceInfo, deviceInfoSize)) {
                 Serial.println("Could not verify Ed25519 Device Info, Signature and Public Key");
                 sendTLVError(6, TLVErrorAuthentication);
-                server->pairing = false;
+                pairing = false;
                 break;
             }
 
@@ -468,7 +600,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
 
             server->setupMDNS();
 
-            server->pairing = false;
+            pairing = false;
             Serial.println("Finished Pairing");
         }
             break;
@@ -610,4 +742,162 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
             Serial.println("Invalid State");
             break;
     }
+}
+
+void HKClient::onIdentify() {
+    Serial.println("Identify");
+
+    if (HKStorage::isPaired()) {
+        // TODO: sendJSONErrorResponse(400, InsufficientPrivileges);
+        return;
+    }
+
+    // TODO: send204Response();
+
+    HKAccessory *accessory = server->hk->getAccessory();
+    if (!accessory) {
+        return;
+    }
+
+    HKService *accessoryInfo = accessory->getService(ServiceAccessoryInfo);
+    if (!accessoryInfo) {
+        return;
+    }
+
+    HKCharacteristic *characteristicIdentify = accessoryInfo->getCharacteristic(HKCharacteristicIdentify);
+    if (!characteristicIdentify) {
+        return;
+    }
+
+    // TODO: execute characteristic Setter
+}
+
+void HKClient::onGetAccessories() {
+    Serial.println("Get Accessories");
+
+    send((byte *) json_200_response_headers, sizeof(json_200_response_headers) - 1);
+
+    JSON json = JSON(1024, std::bind(&HKClient::sendChunk, this, std::placeholders::_1, std::placeholders::_2));
+    json.startObject();
+    json.setString("accessories");
+    json.startArray();
+
+    HKAccessory *accessory = server->hk->getAccessory();
+    accessory->serializeToJSON(json, nullptr);
+
+    json.endArray();
+
+    json.endObject();
+
+    json.flush();
+
+    Serial.println("flushed");
+    sendChunk(nullptr, 0);
+}
+
+void HKClient::onGetCharacteristics(String id, bool meta, bool perms, bool type, bool ev) {
+    Serial.println("Get Characteristics");
+
+    send((byte *) json_200_response_headers, sizeof(json_200_response_headers) - 1);
+
+    JSON json = JSON(1024, std::bind(&HKClient::sendChunk, this, std::placeholders::_1, std::placeholders::_2));
+    json.startObject();
+    json.setString("characteristics");
+    json.startArray();
+
+    while (id.length() > 0) {
+        int aidPos = id.indexOf('.');
+        int iidPos = id.indexOf(',');
+        if (iidPos == -1) {
+            iidPos = id.length();
+        }
+
+        unsigned int format = 0;
+        if (meta) {
+            format |= HKCharacteristicFormatMeta;
+        }
+        if (perms) {
+            format |= HKCharacteristicFormatPerms;
+        }
+        if (type) {
+            format |= HKCharacteristicFormatType;
+        }
+        if (ev) {
+            format |= HKCharacteristicFormatEvents;
+        }
+
+        unsigned int aid = id.substring(0, aidPos).toInt();
+        unsigned int iid = id.substring(aidPos + 1, iidPos).toInt();
+
+        if (server->hk->getAccessory()->getId() == aid) {
+            if (HKCharacteristic* target = server->hk->getAccessory()->findCharacteristic(iid)) {
+
+                json.startObject();
+
+                json.setString("aid");
+                json.setInt(aid);
+
+                target->serializeToJSON(json, nullptr, format);
+
+                json.endObject();
+            }
+        }
+
+        id = id.substring(iidPos + 1);
+    }
+
+    json.endArray();
+
+    json.endObject();
+
+    json.flush();
+
+    Serial.println("flushed");
+    sendChunk(nullptr, 0);
+}
+
+void HKClient::onUpdateCharacteristics(String jsonBody) {
+    Serial.println("onUpdateCharacteristics");
+
+    DynamicJsonDocument doc(1024);
+    if (deserializeJson(doc, jsonBody) != DeserializationError::Ok) {
+        Serial.println("Could not deserialize json");
+        return;
+    }
+
+    for (JsonObject characteristicJSON : doc["characteristics"].as<JsonArray>()) {
+        auto aid = characteristicJSON["aid"].as<unsigned int>();
+        auto iid = characteristicJSON["iid"].as<unsigned int>();
+
+        HKAccessory *accessory = server->hk->getAccessory();
+        if (accessory->getId() != aid) {
+            Serial.println("Could not find accessory with id " + String (aid));
+            return;
+        }
+
+        HKCharacteristic *characteristic = accessory->findCharacteristic(iid);
+        if (!characteristic) {
+            Serial.println("Could not find characteristic with id " + String(iid));
+            return;
+        }
+
+        if (characteristicJSON.containsKey("value")) {
+            characteristic->setValue(characteristicJSON["value"]);
+        }
+
+        if (characteristicJSON.containsKey("ev")) {
+            Serial.println("Events are not supported yet");
+        }
+    }
+
+    send204Response();
+}
+
+void HKClient::onPairings(const std::vector<byte> &body) {
+    Serial.println("onPairings");
+}
+
+void HKClient::send204Response() {
+    static char response[] = "HTTP/1.1 204 No Content\r\n\r\n";
+    send((byte *)response, sizeof(response)-1);
 }

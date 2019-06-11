@@ -23,6 +23,7 @@ public:
     explicit HKServer(HomeKit *hk);
     void setup();
     void update();
+    bool isPairing();
 
     friend class HKClient;
 private:
@@ -34,7 +35,6 @@ private:
     esp8266::MDNSImplementation::MDNSResponder::hMDNSService mdnsService;
 
     std::vector<HKClient *> clients;
-    bool pairing;
 };
 
 

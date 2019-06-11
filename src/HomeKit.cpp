@@ -19,7 +19,7 @@ void HomeKit::setup() {
 
     srp_init((uint8_t *) password.c_str());
 
-    Serial.println("Password: " + String((char *) srp_pinMessage()));
+    Serial.println("Password: " + String((char *) srp_pinMessage() + 11));
     setupAccessory();
 
     server->setup();
@@ -51,12 +51,12 @@ String HomeKit::getName() {
                 return generateCustomName();
             }
 
-            HKCharacteristic *serviceName = info->getCharacteristic(CharacteristicServiceName);
+            HKCharacteristic *serviceName = info->getCharacteristic(HKCharacteristicServiceName);
             if (!serviceName) {
                 return generateCustomName();
             }
 
-            name = serviceName->getValue().StringValue;
+            name = serviceName->getValue().stringValue;
             String accessoryId = storage->getAccessoryId();
             name += "-" + accessoryId.substring(0, 2) + accessoryId.substring(3, 5);
             return name;

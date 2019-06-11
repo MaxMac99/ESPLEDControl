@@ -8,7 +8,7 @@
 #include "lwip/tcp.h"
 #include <include/ClientContext.h>
 
-HKServer::HKServer(HomeKit *hk) : WiFiServer(PORT), hk(hk), mdnsService(), pairing(false) {
+HKServer::HKServer(HomeKit *hk) : WiFiServer(PORT), hk(hk), mdnsService() {
 }
 
 void HKServer::setup() {
@@ -51,6 +51,15 @@ void HKServer::update() {
     }
 }
 
+bool HKServer::isPairing() {
+    for (auto client : clients) {
+        if (client->pairing) {
+            return true;
+        }
+    }
+    return false;
+}
+
 HKClient *HKServer::availableHK(byte* status) {
     (void) status;
     if (_unclaimed) {
@@ -89,12 +98,12 @@ int HKServer::setupMDNS() {
     if (info == nullptr) {
         return -1;
     }
-    HKCharacteristic *model = info->getCharacteristic(CharacteristicModelName);
+    HKCharacteristic *model = info->getCharacteristic(HKCharacteristicModelName);
     if (model == nullptr) {
         return -1;
     }
 
-    if (!MDNS.addServiceTxt(service, protocol, "md", model->getValue().StringValue)) {
+    if (!MDNS.addServiceTxt(service, protocol, "md", model->getValue().stringValue)) {
         Serial.println("Failed to add model");
         return false;
     }
