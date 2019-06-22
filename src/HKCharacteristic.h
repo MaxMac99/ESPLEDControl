@@ -73,8 +73,8 @@ private:
     float *minValue;
     float *maxValue;
     float *minStep;
-    int *maxLen;
-    int *maxDataLen;
+    unsigned int *maxLen;
+    unsigned int *maxDataLen;
 
     HKValidValues validValues;
     HKValidValuesRanges validValuesRanges;

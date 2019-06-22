@@ -21,14 +21,9 @@ bool WiFiSetup::start() {
 
     if (ssid != "") {
         if (connectWifi(ssid, password) == WL_CONNECTED) {
-            Serial.println("Connection restored to " + ssid);
-            Serial.println("IP-Address: " + WiFi.localIP().toString());
+            // Connection restored
             return true;
-        } else {
-            Serial.println("Could not connect");
         }
-    } else {
-        Serial.println("No network configured");
     }
 
     return startConfigPortal();
@@ -40,9 +35,10 @@ void WiFiSetup::update() {
         if (WiFi.status() == WL_CONNECTED) {
             return;
         }
-        Serial.println("Not connected");
+
+        // Not connected
         if (connectWifi(ssid, password) == WL_CONNECTED) {
-            Serial.println("Connection restored to " + ssid);
+            // Connection restored
             return;
         }
 
@@ -51,11 +47,9 @@ void WiFiSetup::update() {
 }
 
 bool WiFiSetup::startConfigPortal() {
-    Serial.println("Start Config Portal");
     WiFi.mode(WIFI_AP);
 
     setupConfigPortal(hostname);
-    Serial.println("Available as " + WiFi.softAPSSID());
 
     connected = false;
     while(true) {
@@ -174,14 +168,11 @@ void WiFiSetup::handleWifiSave() {
     }
 
     if (result == WL_CONNECTED) {
-        Serial.println("Successfully connected to " + newSSID);
         server->send(200);
 
         changeCallback(newSSID, newPassword);
         connected = true;
     } else {
-        Serial.println("Could not connect");
-
         String response = "Could not connect to network \"" + newSSID + "\".";
         server->sendHeader("Content-Length", String(response.length()));
         server->send(400, "text", response);
@@ -223,16 +214,13 @@ bool WiFiSetup::captivePortal() {
 
 uint8_t WiFiSetup::connectWifi(const String& ssid, const String& password) {
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("Wifi connected");
         return WL_CONNECTED;
     }
 
     if (ssid != "") {
-        Serial.println("Connecting to \"" + ssid + "\" with password: \"" + password + "\"...");
         WiFi.begin(ssid, password);
     } else {
         if (WiFi.SSID()) {
-            Serial.println("Reconnecting to \"" + WiFi.SSID() + "\"...");
             ETS_UART_INTR_DISABLE();
             wifi_station_disconnect();
             ETS_UART_INTR_ENABLE();

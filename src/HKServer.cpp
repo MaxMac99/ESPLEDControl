@@ -28,7 +28,7 @@ void HKServer::update() {
             return;
         }
 
-        Serial.println("New Client connected (" + String(newClient->remoteIP().toString()) + ":" + String(newClient->remotePort()) + ")");
+        HKLOGINFO("[HKServer::update] New Client connected (%s:%d)\r\n", newClient->remoteIP().toString().c_str(), newClient->remotePort());
 
         newClient->setTimeout(10000);
         newClient->keepAlive(180, 30, 4);
@@ -44,7 +44,7 @@ void HKServer::update() {
         }
 
         if (!client->connected()) {
-            Serial.println("Client disconnected");
+            HKLOGINFO("[HKServer::update] Client disconnected\r\n");
             hk->getAccessory()->clearCallbackEvents(client);
             delete *it;
             it = clients.erase(it);
@@ -80,11 +80,11 @@ HKClient *HKServer::availableHK(byte* status) {
 }
 
 int HKServer::setupMDNS() {
-    Serial.println("Setup mDNS");
+    HKLOGINFO("[HKServer::setupMDNS] Setup mDNS\r\n");
     String uniqueName = hk->getName();
 
     if (!mdnsService && !MDNS.begin(uniqueName)) {
-        Serial.println("Failed to begin mDNS");
+        HKLOGERROR("[HKServer::setupMDNS] Failed to begin mDNS\r\n");
         return -1;
     }
     
@@ -94,7 +94,7 @@ int HKServer::setupMDNS() {
     if (!mdnsService) {
         mdnsService = MDNS.addService(nullptr, service, protocol, PORT);
         if (!mdnsService) {
-            Serial.println("Failed to add service");
+            HKLOGERROR("[HKServer::setupMDNS] Failed to add service\r\n");
             return -1;
         }
     }
@@ -109,29 +109,29 @@ int HKServer::setupMDNS() {
     }
 
     if (!MDNS.addServiceTxt(service, protocol, "md", model->getValue().stringValue)) {
-        Serial.println("Failed to add model");
+        HKLOGERROR("[HKServer::setupMDNS] Failed to add md model\r\n");
         return false;
     }
     if (!MDNS.addServiceTxt(service, protocol, "pv", "1.0")) {
-        Serial.println("Failed to add \"1.0\"");
+        HKLOGERROR("[HKServer::setupMDNS] Failed to add pv \"1.0\"\r\n");
         return false;
     }
     if (!MDNS.addServiceTxt(service, protocol, "id", hk->getAccessoryId())) {
-        Serial.println("Failed to add accessoryId");
+        HKLOGERROR("[HKServer::setupMDNS] Failed to add id accessoryId\r\n");
         return false;
     }
     if (!MDNS.addServiceTxt(service, protocol, "c#", String(hk->getConfigNumber()))) {
-        Serial.println("Failed to add configNumber");
+        HKLOGERROR("[HKServer::setupMDNS] Failed to add c# configNumber\r\n");
         return false;
     }
     if (!MDNS.addServiceTxt(service, protocol, "s#", "1")) {  // State number
-        Serial.println("Failed to 1");
+        HKLOGERROR("[HKServer::setupMDNS] Failed to add s#\r\n");
         return false;
     }
     if (!MDNS.addServiceTxt(service, protocol, "ff", "0")) {  // feature flags
         //   bit 0 - supports HAP pairing. required for all HomeKit accessories
         //   bits 1-7 - reserved
-        Serial.println("Failed to ");
+        HKLOGERROR("[HKServer::setupMDNS] Failed to add ff\r\n");
         return false;
     }
     if (!MDNS.addServiceTxt(service, protocol, "sf", String(HKStorage::isPaired() ? 0 : 1))) {  // status flags
@@ -139,11 +139,11 @@ int HKServer::setupMDNS() {
         //   bit 1 - not configured to join WiFi
         //   bit 2 - problem detected on accessory
         //   bits 3-7 - reserved
-        Serial.println("Failed to ");
+        HKLOGERROR("[HKServer::setupMDNS] Failed to add sf paired\r\n");
         return false;
     }
     if (!MDNS.addServiceTxt(service, protocol, "ci", String(hk->getAccessory()->getCategory()))) {
-        Serial.println("Failed to ");
+        HKLOGERROR("[HKServer::setupMDNS] Failed to add ci category\r\n");
         return false;
     }
 

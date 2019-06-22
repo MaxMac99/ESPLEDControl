@@ -25,7 +25,6 @@ void HKAccessory::addInfoService(const String& accName, const String& manufactur
     HKCharacteristic *modelChar = new HKCharacteristic(HKCharacteristicModelName, modelValue, PermissionPairedRead, "Model", FormatString);
     infoService->addCharacteristic(modelChar);
 
-    Serial.println("AccName: " + String(accName));
     HKValue nameValue = HKValue(accName);
     HKCharacteristic *nameChar = new HKCharacteristic(HKCharacteristicServiceName, nameValue, PermissionPairedRead, "Name", FormatString);
     infoService->addCharacteristic(nameChar);
@@ -41,7 +40,6 @@ void HKAccessory::addService(HKService *service) {
 }
 
 void HKAccessory::identify() {
-    Serial.println("Identify");
 }
 
 HKService *HKAccessory::getService(HKServiceType serviceType) {

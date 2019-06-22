@@ -55,7 +55,7 @@ void HKStorage::resetPairings() {
         EEPROM.write(i, 0);
     }
     EEPROM.end();
-    Serial.println("Reset Pairings");
+    HKLOGINFO("[HKStorage::resetPairings] Reset Pairings");
 }
 
 String HKStorage::getAccessoryId() {
@@ -95,7 +95,6 @@ String HKStorage::getPassword() {
 }
 
 String HKStorage::generateAccessoryId() {
-    Serial.println("Generating Accessory ID");
     uint32_t randomNumber;
     String accessoryId = String();
     for (uint8_t i = 0; i < 6; i++) {
@@ -110,14 +109,14 @@ String HKStorage::generateAccessoryId() {
         }
     }
 
-    Serial.println("Accessory ID: " + accessoryId);
+    HKLOGINFO("[HKStorage::generateAccessoryId] Accessory ID: %s\r\n", accessoryId.c_str());
 
     memcpy(data.accessoryId, accessoryId.c_str(), accessoryId.length());
     return accessoryId;
 }
 
 KeyPair HKStorage::generateAccessoryKey() {
-    Serial.println("Generating Accessory Key");
+    HKLOGINFO("[HKStorage::generateAccessoryKey] Generating Accessory Key\r\n");
     os_get_random(data.accessoryKey.privateKey, sizeof(data.accessoryKey.privateKey));
     Ed25519::derivePublicKey(data.accessoryKey.publicKey, data.accessoryKey.privateKey);
     return data.accessoryKey;

@@ -188,21 +188,13 @@ void HKCharacteristic::serializeToJSON(JSON &json, HKValue *jsonValue, unsigned 
     }
 
     if (permissions & PermissionPairedRead) {
-        if (jsonValue) {
-            Serial.println("JSON Value");
-        } else if (getter) {
-            Serial.println("Getter");
-        } else {
-            Serial.println("Value");
-        }
         HKValue v = jsonValue ? *jsonValue : getter ? getter() : value;
 
         if (v.isNull) {
             json.setString("value");
             json.setNull();
         } else if (v.format != format) {
-            Serial.println("Characteristic value format is different from characteristic format");
-            Serial.println("format: " + String(format) + " v.format: " + String(v.format));
+            HKLOGERROR("[HKCharacteristic::serializeToJSON] Value format is different from format (id=%d.%d: %d != %d)\r\n", service->getAccessory()->getId(), id, v.format, format);
         } else {
             switch (v.format) {
                 case FormatBool:
@@ -238,7 +230,7 @@ void HKCharacteristic::serializeToJSON(JSON &json, HKValue *jsonValue, unsigned 
 
 HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
     if (!(permissions & PermissionPairedWrite)) {
-        Serial.println("Failed to update: no write permission");
+        HKLOGERROR("[HKCharacteristic::setValue] Failed to set characteristic value (id=%d.%d): no write permission\r\n", service->getAccessory()->getId(), id);
         return HAPStatusReadOnly;
     }
 
@@ -251,11 +243,11 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             } else if (jsonValue.is<int>()) {
                 result = jsonValue.as<int>() == 1;
             } else {
-                Serial.println("Failed to update: Json is not of type bool");
+                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type bool\r\n", service->getAccessory()->getId(), id);
                 return HAPStatusInvalidValue;
             }
 
-            Serial.println("Update Characteristic with bool: " + String(result));
+            HKLOGINFO("[HKCharacteristic::setValue] Update Characteristic (id=%d.%d) with bool: %d\r\n", service->getAccessory()->getId(), id, result);
 
             if (setter) {
                 hkValue = HKValue(FormatBool, result);
@@ -275,7 +267,7 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             if (jsonValue.is<uint64_t>() || jsonValue.is<bool>()) {
                 result = jsonValue.as<uint64_t>();
             } else {
-                Serial.println("Failed to update: Json is not of type int");
+                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type int\r\n", service->getAccessory()->getId(), id);
                 return HAPStatusInvalidValue;
             }
 
@@ -319,7 +311,7 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             }
 
             if (result < checkMinValue || result > checkMaxValue) {
-                Serial.println("Failed to update: int is not in range");
+                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): int is not in range\r\n", service->getAccessory()->getId(), id);
                 return HAPStatusInvalidValue;
             }
 
@@ -333,7 +325,7 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
                 }
 
                 if (!matches) {
-                    Serial.println("Failed to update: int is not one of valid values");
+                    HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): int is not one of valid values\r\n", service->getAccessory()->getId(), id);
                     return HAPStatusInvalidValue;
                 }
             }
@@ -347,12 +339,12 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
                 }
 
                 if (!matches) {
-                    Serial.println("Failed to update: int is not one of valid values range");
+                    HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): int is not one of valid values range\r\n", service->getAccessory()->getId(), id);
                     return HAPStatusInvalidValue;
                 }
             }
 
-            Serial.println("Update Characteristic with int: " + String((uint32_t) result));
+            HKLOGINFO("[HKCharacteristic::setValue] Update Characteristic (id=%d.%d) with int: %d\r\n", service->getAccessory()->getId(), id, result);
 
             if (setter) {
                 hkValue = HKValue(result);
@@ -368,16 +360,16 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             if (jsonValue.is<float>()) {
                 result = jsonValue.as<float>();
             } else {
-                Serial.println("Failed to update: Json is not of type float");
+                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type float\r\n", service->getAccessory()->getId(), id);
                 return HAPStatusInvalidValue;
             }
 
             if ((minValue && result < *minValue) || (maxValue && result > *maxValue)) {
-                Serial.println("Failed to update: float is not in range");
+                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): float is not in range\r\n", service->getAccessory()->getId(), id);
                 return HAPStatusInvalidValue;
             }
 
-            Serial.println("Update Characteristic with float: " + String(result));
+            HKLOGINFO("[HKCharacteristic::setValue] Update Characteristic (id=%d.%d) with float: %f\r\n", service->getAccessory()->getId(), id, result);
 
             if (setter) {
                 hkValue = HKValue(result);
@@ -393,17 +385,17 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             if (jsonValue.is<char *>()) {
                 result = jsonValue.as<char *>();
             } else {
-                Serial.println("Failed to update: Json is not of type string");
+                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type string\r\n", service->getAccessory()->getId(), id);
                 return HAPStatusInvalidValue;
             }
 
             int checkMaxLen = maxLen ? *maxLen : 64;
             if (strlen(result) > checkMaxLen) {
-                Serial.println("Failed to update: String is too long");
+                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): String is too long\r\n", service->getAccessory()->getId(), id);
                 return HAPStatusInvalidValue;
             }
 
-            Serial.println("Update Characteristic with string: " + String(result));
+            HKLOGINFO("[HKCharacteristic::setValue] Update Characteristic (id=%d.%d) with string: %s\r\n", service->getAccessory()->getId(), id, result);
 
             if (setter) {
                 hkValue = HKValue(result);
@@ -415,11 +407,11 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             break;
         }
         case FormatTLV: {
-            Serial.println("TLV not supported yet");
+            HKLOGERROR("[HKCharacteristic::setValue] (id=%d.%d) TLV not supported yet\r\n", service->getAccessory()->getId(), id);
             break;
         }
         case FormatData: {
-            Serial.println("Data not supported yet");
+            HKLOGERROR("[HKCharacteristic::setValue] (id=%d.%d) Data not supported yet\r\n", service->getAccessory()->getId(), id);
             break;
         }
     }
@@ -440,12 +432,12 @@ HAPStatus HKCharacteristic::setEvent(HKClient *client, JsonVariant jsonValue) {
     } else if (jsonValue.is<int>()) {
         events = jsonValue.as<int>() == 1;
     } else {
-        Serial.println("Failed to update: Json is not of type bool");
+        HKLOGERROR("[HKCharacteristic::setEvent] Failed to update (id=%d.%d): Json is not of type bool\r\n", service->getAccessory()->getId());
         return HAPStatusInvalidValue;
     }
 
     if (!(permissions & PermissionNotify)) {
-        Serial.println("Failed to update: notifications are not supported");
+        HKLOGERROR("[HKCharacteristic::setEvent] Failed to update (id=%d.%d): notifications are not supported\r\n", service->getAccessory()->getId());
         return HAPStatusNotificationsUnsupported;
     }
 

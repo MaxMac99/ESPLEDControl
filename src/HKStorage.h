@@ -8,6 +8,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <Ed25519.h>
+#include "HomeKit.h"
 
 #ifndef STORAGE_BASE_ADDR
 #define STORAGE_BASE_ADDR 0x0

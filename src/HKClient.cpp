@@ -31,8 +31,6 @@ bool HKClient::readBytesWithTimeout(size_t maxLength, std::vector<byte> &data, i
 }
 
 bool HKClient::received() {
-    Serial.println("HEAP: " + String(ESP.getFreeHeap()));
-
     size_t dataSize;
     byte *data;
     size_t dataPos = 0;
@@ -58,7 +56,7 @@ bool HKClient::received() {
     int addrStart = req.indexOf(' ');
     int addrEnd = req.indexOf(' ', addrStart + 1);
     if (addrStart == -1 || addrEnd == -1) {
-        Serial.println("Could not parse address");
+        HKLOGWARNING("[HKClient::received] (ip=%s) Could not parse address\r\n", remoteIP().toString().c_str());
         free(data);
         return false;
     }
@@ -125,32 +123,33 @@ bool HKClient::received() {
 
         if (!encrypted && plainBuf.size() < contentLength) {
             if (!readBytesWithTimeout(contentLength, plainBuf, 2000)) {
-                Serial.println("Timeout: " + complete);
+                HKLOGWARNING("[HKClient::received] (ip=%s) Timeout: %s\r\n", remoteIP().toString().c_str(), complete.c_str());
                 return false;
             }
         }
 
         if (plainBuf.size() < contentLength) {
-            Serial.println("Data too short: " + complete);
+            HKLOGWARNING("[HKClient::received] (ip=%s) Data too short: %s\r\n", remoteIP().toString().c_str(), complete.c_str());
 
             free(data);
             return false;
         }
 
-        Serial.println("------------- Received -------------");
-        Serial.println("Method=" + methodStr + " URL=" + url + " complete=");
+#if HKLOGLEVEL == 0
+        HKLOGDEBUGSINGLE("------------- Received -------------\r\n");
         for (size_t i = 0; i < dataSize; i++) {
             byte item = *(data + i);
             if (item == '\r' || item == '\n' || (item >= ' ' && item <= '}' && item != '\\')) {
-                Serial.print((char) item);
+                HKLOGDEBUGSINGLE("%c", item);
             } else if (item < 0x10) {
-                Serial.print("\\x0" + String(item, HEX));
+                HKLOGDEBUGSINGLE("\\x0%x", item);
             } else {
-                Serial.print("\\x" + String(item, HEX));
+                HKLOGDEBUGSINGLE("\\x%x", item);
             }
         }
-        Serial.println();
-        Serial.println("----------- End Received -----------");
+        HKLOGDEBUGSINGLE("\r\n----------- End Received -----------\r\n");
+#endif
+
         if (url == "/pair-setup") {
             onPairSetup(plainBuf);
         } else if (url == "/pair-verify") {
@@ -165,7 +164,6 @@ bool HKClient::received() {
     } else {
         std::map<String, String> queries;
         while (searchStr.length()) {
-            Serial.println("searchQuery: " + searchStr);
             int equalPos = searchStr.indexOf('=');
             int keyEndPos = equalPos;
             int nextPos = searchStr.indexOf('&');
@@ -193,19 +191,20 @@ bool HKClient::received() {
             searchStr = searchStr.substring(nextPos);
         }
 
-        Serial.println("------------- Received -------------");
+#if HKLOGLEVEL == 0
+        HKLOGDEBUGSINGLE("------------- Received -------------\r\n");
         for (size_t i = 0; i < dataSize; i++) {
             byte item = *(data + i);
             if (item == '\r' || item == '\n' || (item >= ' ' && item <= '}' && item != '\\')) {
-                Serial.print((char) item);
+                HKLOGDEBUGSINGLE("%c", item);
             } else if (item < 0x10) {
-                Serial.print("\\x0" + String(item, HEX));
+                HKLOGDEBUGSINGLE("\\x0%x", item);
             } else {
-                Serial.print("\\x" + String(item, HEX));
+                HKLOGDEBUGSINGLE("\\x%x", item);
             }
         }
-        Serial.println();
-        Serial.println("----------- End Received -----------");
+        HKLOGDEBUGSINGLE("\r\n----------- End Received -----------\r\n");
+#endif
 
         if (url == "/accessories") {
             onGetAccessories();
@@ -239,30 +238,29 @@ bool HKClient::received() {
 }
 
 void HKClient::send(byte *message, size_t messageSize) {
-    Serial.println("------------- Sending -------------");
-    Serial.println("Message Size: " + String(messageSize));
+#if HKLOGLEVEL == 0
+    HKLOGDEBUGSINGLE("------------- Sending -------------\r\n");
     for (size_t i = 0; i < messageSize; i++) {
         byte item = *(message + i);
         if (item == '\r' || item == '\n' || (item >= ' ' && item <= '}' && item != '\\')) {
-            Serial.print((char) item);
+            HKLOGDEBUGSINGLE("%c", item);
         } else if (item < 0x10) {
-            Serial.print("\\x0" + String(item, HEX));
+            HKLOGDEBUGSINGLE("\\x0%x", item);
         } else {
-            Serial.print("\\x" + String(item, HEX));
+            HKLOGDEBUGSINGLE("\\x%x", item);
         }
     }
-    Serial.println();
+    HKLOGDEBUGSINGLE("\r\n----------- End Sending -----------\r\n");
+#endif
 
     if (encrypted) {
         sendEncrypted(message, messageSize);
     } else {
         write(message, messageSize);
     }
-    Serial.println("----------- End Sending -----------");
 }
 
 void HKClient::sendChunk(byte *message, size_t messageSize) {
-    Serial.println("send chunk size: " + String(messageSize));
     size_t payloadSize = messageSize + 8;
     auto payload = (byte *) malloc(payloadSize);
 
@@ -317,7 +315,7 @@ byte *HKClient::receivedDecrypted(size_t &decryptedSize) {
         chaChaPoly.addAuthData(encryptedMessage + payloadOffset, 2);
         chaChaPoly.decrypt(decrypted, encryptedMessage + payloadOffset + 2, chunkSize);
         if (!chaChaPoly.checkTag(encryptedMessage + payloadOffset + 2 + chunkSize, 16)) {
-            Serial.println("Could not verify");
+            HKLOGERROR("[HKClient::receivedDecrypted] Could not verify\r\n");
             return nullptr;
         }
 
@@ -421,9 +419,9 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
 
     switch (value) {
         case 1: {
-            Serial.println("Setup Step 1/3");
+            HKLOGINFO("[HKClient::onPairSetup] Setup Step 1/3\r\n");
             if (HKStorage::isPaired()) {
-                Serial.println("Refuse to pair: Already paired");
+                HKLOGINFO("[HKClient::onPairSetup] Refuse to pair: Already paired\r\n");
 
                 sendTLVError(2, TLVErrorUnavailable);
                 pairing = false;
@@ -431,7 +429,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             }
 
             if (server->isPairing()) {
-                Serial.println("Refuse to pair: another pairing in process");
+                HKLOGINFO("[HKClient::onPairSetup] Refuse to pair: another pairing in process\r\n");
 
                 sendTLVError(2, TLVErrorBusy);
                 break;
@@ -452,11 +450,11 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             break;
         }
         case 3: {
-            Serial.println("Setup Step 2/3");
+            HKLOGINFO("[HKClient::onPairSetup] Setup Step 2/3\r\n");
             HKTLV* publicKey = HKTLV::findTLV(message, TLVTypePublicKey);
             HKTLV* proof = HKTLV::findTLV(message, TLVTypeProof);
             if (!publicKey || !proof) {
-                Serial.println("Could not find Public Key or Proof in Message");
+                HKLOGINFO("[HKClient::onPairSetup] Could not find Public Key or Proof in Message\r\n");
                 sendTLVError(4, TLVErrorAuthentication);
                 pairing = false;
                 break;
@@ -475,14 +473,14 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
                 sendTLVResponse(message);
             } else {
                 //return error
-                Serial.println("SRP Error");
+                HKLOGINFO("[HKClient::onPairSetup] SRP Error\r\n");
                 sendTLVError(4, TLVErrorAuthentication);
                 pairing = false;
             }
             break;
         }
         case 5: {
-            Serial.println("Setup Step 3/3");
+            HKLOGINFO("[HKClient::onPairSetup] Setup Step 3/3\r\n");
 
             byte sharedSecret[32];
             const char salt1[] = "Pair-Setup-Encrypt-Salt";
@@ -491,7 +489,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
 
             HKTLV *encryptedTLV = HKTLV::findTLV(message, TLVTypeEncryptedData);
             if (!encryptedTLV) {
-                Serial.println("Failed: Could not find Encrypted Data");
+                HKLOGINFO("[HKClient::onPairSetup] Failed: Could not find Encrypted Data\r\n");
                 sendTLVError(6, TLVErrorAuthentication);
                 pairing = false;
                 break;
@@ -501,7 +499,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             byte decryptedData[decryptedDataSize];
 
             if (!crypto_verifyAndDecrypt(sharedSecret, (byte *) "PS-Msg05", encryptedTLV->getValue(), decryptedDataSize, decryptedData, encryptedTLV->getValue() + decryptedDataSize)) {
-                Serial.println("Decryption failed: MAC not equal");
+                HKLOGINFO("[HKClient::onPairSetup] Decryption failed: MAC not equal\r\n");
                 sendTLVError(6, TLVErrorAuthentication);
                 pairing = false;
                 break;
@@ -510,7 +508,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             std::vector<HKTLV *> decryptedMessage = HKTLV::parseTLV(decryptedData, decryptedDataSize);
             HKTLV *deviceId = HKTLV::findTLV(decryptedMessage, TLVTypeIdentifier);
             if (!deviceId) {
-                Serial.println("Decryption failed: Device ID not found in decrypted Message");
+                HKLOGINFO("[HKClient::onPairSetup] Decryption failed: Device ID not found in decrypted Message\r\n");
                 for (auto msg : decryptedMessage) {
                     delete msg;
                 }
@@ -521,7 +519,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
 
             HKTLV *publicKey = HKTLV::findTLV(decryptedMessage, TLVTypePublicKey);
             if (!publicKey) {
-                Serial.println("Decryption failed: Public Key not found in decrypted Message");
+                HKLOGINFO("[HKClient::onPairSetup] Decryption failed: Public Key not found in decrypted Message\r\n");
                 for (auto msg : decryptedMessage) {
                     delete msg;
                 }
@@ -532,7 +530,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
 
             HKTLV *signature = HKTLV::findTLV(decryptedMessage, TLVTypeSignature);
             if (!signature) {
-                Serial.println("Decryption failed: Signature not found in decrypted Message");
+                HKLOGINFO("[HKClient::onPairSetup] Decryption failed: Signature not found in decrypted Message\r\n");
                 for (auto msg : decryptedMessage) {
                     delete msg;
                 }
@@ -553,7 +551,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             memcpy(deviceInfo + sizeof(deviceX) + deviceId->getSize(), publicKey->getValue(), publicKey->getSize());
 
             if (!Ed25519::verify(signature->getValue(), publicKey->getValue(), deviceInfo, deviceInfoSize)) {
-                Serial.println("Could not verify Ed25519 Device Info, Signature and Public Key");
+                HKLOGINFO("[HKClient::onPairSetup] Could not verify Ed25519 Device Info, Signature and Public Key\r\n");
                 for (auto msg : decryptedMessage) {
                     delete msg;
                 }
@@ -564,7 +562,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
 
             int result = HKStorage::addPairing((char *) deviceId->getValue(), publicKey->getValue(), 1);
             if (result) {
-                Serial.println("COULD NOT STORE PAIRING");
+                HKLOGERROR("[HKClient::onPairSetup] COULD NOT STORE PAIRING\r\n");
             }
 
             // M6 Response Generation
@@ -606,7 +604,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
             server->setupMDNS();
 
             pairing = false;
-            Serial.println("Finished Pairing");
+            HKLOGINFO("[HKClient::onPairSetup] Pairing Successfull\r\n");
             break;
         }
         default:
@@ -629,12 +627,13 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
 
     switch (value) {
         case 1: {
+            HKLOGINFO("[HKClient::onPairVerify] Verify Step 1/2\r\n");
             verifyContext = new VerifyContext();
 
             HKTLV *deviceKeyTLV = HKTLV::findTLV(message, TLVTypePublicKey);
 
             if (!deviceKeyTLV) {
-                Serial.println("Device Key not Found");
+                HKLOGINFO("[HKClient::onPairVerify] Device Key not Found\r\n");
                 sendTLVError(2, TLVErrorUnknown);
                 break;
             }
@@ -675,12 +674,10 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
             };
 
             sendTLVResponse(responseMessage);
-
-            Serial.println("Step 1 complete");
             break;
         }
         case 3: {
-            Serial.println("Verify Step 2/2");
+            HKLOGINFO("[HKClient::onPairVerify] Verify Step 2/2\r\n");
 
             if (!verifyContext) {
                 sendTLVError(4, TLVErrorAuthentication);
@@ -689,7 +686,7 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
 
             HKTLV *encryptedData = HKTLV::findTLV(message, TLVTypeEncryptedData);
             if (!encryptedData) {
-                Serial.println("Could not find encrypted data");
+                HKLOGINFO("[HKClient::onPairVerify] Could not find encrypted data\r\n");
                 sendTLVError(4, TLVErrorUnknown);
                 delete verifyContext;
                 verifyContext = nullptr;
@@ -699,7 +696,7 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
             size_t decryptedDataSize = encryptedData->getSize() - 16;
             byte decryptedData[decryptedDataSize];
             if (!crypto_verifyAndDecrypt(verifyContext->sessionKey, (byte *) "PV-Msg03", encryptedData->getValue(), decryptedDataSize, decryptedData, encryptedData->getValue() + decryptedDataSize)) {
-                Serial.println("Could not verify message");
+                HKLOGINFO("[HKClient::onPairVerify] Could not verify message\r\n");
                 sendTLVError(4, TLVErrorAuthentication);
                 delete verifyContext;
                 verifyContext = nullptr;
@@ -709,7 +706,7 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
             std::vector<HKTLV *> decryptedMessage = HKTLV::parseTLV(decryptedData, decryptedDataSize);
             HKTLV *deviceId = HKTLV::findTLV(decryptedMessage, TLVTypeIdentifier);
             if (!deviceId) {
-                Serial.println("Could not find device ID");
+                HKLOGINFO("[HKClient::onPairVerify] Could not find device ID\r\n");
                 for (auto msg : decryptedMessage) {
                     delete msg;
                 }
@@ -721,7 +718,7 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
 
             HKTLV *deviceSignature = HKTLV::findTLV(decryptedMessage, TLVTypeSignature);
             if (!deviceSignature) {
-                Serial.println("Could not find device Signature");
+                HKLOGINFO("[HKClient::onPairVerify] Could not find device Signature\r\n");
                 for (auto msg : decryptedMessage) {
                     delete msg;
                 }
@@ -733,7 +730,7 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
 
             Pairing *pairingItem = HKStorage::findPairing((char *) deviceId->getValue());
             if (!pairingItem) {
-                Serial.println("Device is not paired");
+                HKLOGINFO("[HKClient::onPairVerify] Device is not paired\r\n");
                 for (auto msg : decryptedMessage) {
                     delete msg;
                 }
@@ -750,7 +747,7 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
             memcpy(deviceInfo + sizeof(verifyContext->devicePublicKey) + deviceId->getSize(), verifyContext->accessoryPublicKey, sizeof(verifyContext->accessoryPublicKey));
 
             if (!Ed25519::verify(deviceSignature->getValue(), pairingItem->deviceKey, deviceInfo, deviceInfoSize)) {
-                Serial.println("Could not verify device readInfo");
+                HKLOGINFO("[HKClient::onPairVerify] Could not verify device readInfo\r\n");
                 delete pairingItem;
                 for (auto msg : decryptedMessage) {
                     delete msg;
@@ -795,7 +792,7 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
 }
 
 void HKClient::onIdentify() {
-    Serial.println("Identify");
+    HKLOGINFO("[HKClient::onIdentify] Identify\r\n");
 
     if (HKStorage::isPaired()) {
         sendJSONErrorResponse(400, HAPStatusInsufficientPrivileges);
@@ -825,7 +822,7 @@ void HKClient::onIdentify() {
 }
 
 void HKClient::onGetAccessories() {
-    Serial.println("Get Accessories");
+    HKLOGINFO("[HKClient::onGetAccessories] Get Accessories\r\n");
 
     send((byte *) json_200_response_headers, sizeof(json_200_response_headers) - 1);
 
@@ -843,21 +840,11 @@ void HKClient::onGetAccessories() {
 
     json.flush();
 
-    Serial.println("flushed");
     sendChunk(nullptr, 0);
 }
 
 void HKClient::onGetCharacteristics(String id, bool meta, bool perms, bool type, bool ev) {
-    Serial.print("Get Characteristics id=");
-    Serial.print(id);
-    Serial.print(" meta=");
-    Serial.print(meta);
-    Serial.print(" perms=");
-    Serial.print(perms);
-    Serial.print(" type=");
-    Serial.print(type);
-    Serial.print(" ev=");
-    Serial.println(ev);
+    HKLOGINFO("[HKClient::onGetCharacteristics] Get Characteristics\r\n");
 
     if (!id) {
         sendJSONErrorResponse(400, HAPStatusInvalidValue);
@@ -902,11 +889,11 @@ void HKClient::onGetCharacteristics(String id, bool meta, bool perms, bool type,
                     success = false;
                 }
             } else {
-                Serial.println("Could not find characteristic with id " + String(aid) + "." + String(iid));
+                HKLOGWARNING("[HKClient::onGetCharacteristics] Could not find characteristic with id=%d.%d\r\n", aid, iid);
                 success = false;
             }
         } else {
-            Serial.println("Could not find accessory with id " + String(aid));
+            HKLOGWARNING("[HKClient::onGetCharacteristics] Could not find accessory with id=%d\r\n", aid);
             success = false;
         }
     }
@@ -959,8 +946,6 @@ void HKClient::onGetCharacteristics(String id, bool meta, bool perms, bool type,
 
                 json.endObject();
             } else {
-                Serial.println("Could not find characteristic with id " + String(aid) + "." + String(iid));
-
                 json.startObject();
                 json.setString("aid");
                 json.setInt(aid);
@@ -971,8 +956,6 @@ void HKClient::onGetCharacteristics(String id, bool meta, bool perms, bool type,
                 json.endObject();
             }
         } else {
-            Serial.println("Could not find accessory with id " + String(aid));
-
             json.startObject();
             json.setString("aid");
             json.setInt(aid);
@@ -994,17 +977,18 @@ void HKClient::onGetCharacteristics(String id, bool meta, bool perms, bool type,
 }
 
 void HKClient::onUpdateCharacteristics(String jsonBody) {
-    Serial.println("onUpdateCharacteristics");
+    HKLOGINFO("[HKClient::onUpdateCharacteristics] Update Characteristics\r\n");
 
     DynamicJsonDocument doc(1024);
     if (deserializeJson(doc, jsonBody) != DeserializationError::Ok) {
-        Serial.println("Could not deserialize json");
+        HKLOGERROR("[HKClient::onUpdateCharacteristics] Could not deserialize json\r\n");
         sendJSONErrorResponse(400, HAPStatusInvalidValue);
         return;
     }
 
     JsonArray characteristics = doc["characteristics"].as<JsonArray>();
     if (characteristics.isNull()) {
+        HKLOGERROR("[HKClient::onUpdateCharacteristics] Could not find \"characteristics\" in json\r\n");
         sendJSONErrorResponse(400, HAPStatusInvalidValue);
         return;
     }
@@ -1021,13 +1005,13 @@ HAPStatus HKClient::processUpdateCharacteristic(JsonObject object) {
 
     HKAccessory *accessory = server->hk->getAccessory();
     if (accessory->getId() != aid) {
-        Serial.println("Could not find accessory with id " + String (aid));
+        HKLOGWARNING("[HKClient::processUpdateCharacteristic] Could not find accessory with id=%d\r\n", aid);
         return HAPStatusNoResource;
     }
 
     HKCharacteristic *characteristic = accessory->findCharacteristic(iid);
     if (!characteristic) {
-        Serial.println("Could not find characteristic with id " + String(iid));
+        HKLOGWARNING("[HKClient::processUpdateCharacteristic] Could not find characteristic with id=%d.%d\r\n", aid, iid);
         return HAPStatusNoResource;
     }
 
@@ -1046,7 +1030,7 @@ HAPStatus HKClient::processUpdateCharacteristic(JsonObject object) {
 }
 
 void HKClient::onPairings(const std::vector<byte> &body) {
-    Serial.println("onPairings");
+    HKLOGINFO("[HKClient::onPairings] Pairings\r\n");
 
     std::vector<HKTLV *> message = HKTLV::parseTLV(body);
     HKTLV *state = HKTLV::findTLV(message, TLVTypeState);
@@ -1056,7 +1040,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
         for (auto msg : message) {
             delete msg;
         }
-        Serial.println("Unknown State");
+        HKLOGERROR("[HKClient::onPairings] Unknown State\r\n");
         return;
     }
 
@@ -1067,7 +1051,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
         for (auto msg : message) {
             delete msg;
         }
-        Serial.println("Unknown Message");
+        HKLOGERROR("[HKClient::onPairings] Unknown Message\r\n");
         return;
     }
     switch ((TLVMethod) method->getIntValue()) {
@@ -1078,30 +1062,30 @@ void HKClient::onPairings(const std::vector<byte> &body) {
             onPairVerify(body);
             break;
         case TLVMethodAddPairing: {
-            Serial.println("Add Pairing");
+            HKLOGINFO("[HKClient::onPairings] Add Pairing\r\n");
             if (!(permission & PairingPermissionAdmin)) {
-                Serial.println("Refusing to add pairing to non-admin controller");
+                HKLOGWARNING("[HKClient::onPairings] Refusing to add pairing to non-admin controller\r\n");
                 sendTLVError(2, TLVErrorAuthentication);
                 break;
             }
 
             HKTLV *deviceId = HKTLV::findTLV(message, TLVTypeIdentifier);
             if (!deviceId) {
-                Serial.println("Invalid add pairing request: no device identifier");
+                HKLOGWARNING("[HKClient::onPairings] Invalid add pairing request: no device identifier\r\n");
                 sendTLVError(2, TLVErrorUnknown);
                 break;
             }
 
             HKTLV *devicePublicKey = HKTLV::findTLV(message, TLVTypePublicKey);
             if (!devicePublicKey) {
-                Serial.println("Invalid add pairing request: no device public key");
+                HKLOGWARNING("[HKClient::onPairings] Invalid add pairing request: no device public key\r\n");
                 sendTLVError(2, TLVErrorUnknown);
                 break;
             }
 
             HKTLV *devicePermission = HKTLV::findTLV(message, TLVTypePermissions);
             if (!devicePermission) {
-                Serial.println("Invalid add pairing request: no device Permissions");
+                HKLOGWARNING("[HKClient::onPairings] Invalid add pairing request: no device Permissions\r\n");
                 sendTLVError(2, TLVErrorUnknown);
                 break;
             }
@@ -1110,7 +1094,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
             Pairing *comparePairing = HKStorage::findPairing(deviceIdentifier);
             if (comparePairing) {
                 if (devicePublicKey->getSize() != 32 || memcmp(devicePublicKey->getValue(), comparePairing->deviceKey, 32) != 0) {
-                    Serial.println("Failed to add pairing: pairing public key differs from given one");
+                    HKLOGWARNING("[HKClient::onPairings] Failed to add pairing: pairing public key differs from given one\r\n");
                     delete comparePairing;
                     free(deviceIdentifier);
                     sendTLVError(2, TLVErrorUnknown);
@@ -1119,22 +1103,22 @@ void HKClient::onPairings(const std::vector<byte> &body) {
                 delete comparePairing;
 
                 if (HKStorage::updatePairing(deviceIdentifier, *devicePermission->getValue())) {
-                    Serial.println("Failed to add pairing: storage error");
+                    HKLOGWARNING("[HKClient::onPairings] Failed to add pairing: storage error\r\n");
                     free(deviceIdentifier);
                     sendTLVError(2, TLVErrorUnknown);
                     break;
                 }
 
-                Serial.println("Updated pairing with id " + String(deviceIdentifier));
+                HKLOGINFO("[HKClient::onPairings] Updated pairing with id=%s\r\n", deviceIdentifier);
             } else {
                 int r = HKStorage::addPairing(deviceIdentifier, devicePublicKey->getValue(), *devicePermission->getValue());
                 if (r == -2) {
-                    Serial.println("Failed to add pairing: max peers");
+                    HKLOGWARNING("[HKClient::onPairings] Failed to add pairing: max peers\r\n");
                     free(deviceIdentifier);
                     sendTLVError(2, TLVErrorMaxPeers);
                     break;
                 } else if (r != 0) {
-                    Serial.println("Failed to add pairing: Storage error");
+                    HKLOGWARNING("[HKClient::onPairings] Failed to add pairing: Storage error\r\n");
                     free(deviceIdentifier);
                     sendTLVError(2, TLVErrorUnknown);
                     break;
@@ -1142,7 +1126,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
 
                 delete comparePairing;
 
-                Serial.println("Added pairing with id " + String(deviceIdentifier));
+                HKLOGINFO("[HKClient::onPairings] Added pairing with id=%s\r\n", deviceIdentifier);
             }
             free(deviceIdentifier);
 
@@ -1153,17 +1137,17 @@ void HKClient::onPairings(const std::vector<byte> &body) {
             break;
         }
         case TLVMethodRemovePairing: {
-            Serial.println("Remove pairing");
+            HKLOGINFO("[HKClient::onPairings] Remove pairing\r\n");
 
             if (!(permission & PairingPermissionAdmin)) {
-                Serial.println("Refuse to remove pairing to non-admin controller");
+                HKLOGWARNING("[HKClient::onPairings] Refuse to remove pairing to non-admin controller\r\n");
                 sendTLVError(2, TLVErrorAuthentication);
                 break;
             }
 
             HKTLV *deviceId = HKTLV::findTLV(message, TLVTypeIdentifier);
             if (!deviceId) {
-                Serial.println("Invalid remove pairing request: no device identifier");
+                HKLOGWARNING("[HKClient::onPairings] Invalid remove pairing request: no device identifier\r\n");
                 sendTLVError(2, TLVErrorUnknown);
                 break;
             }
@@ -1177,12 +1161,12 @@ void HKClient::onPairings(const std::vector<byte> &body) {
                 if (result) {
                     delete comparePairing;
                     free(deviceIdentifier);
-                    Serial.println("Failed to remove pairing: storage error");
+                    HKLOGERROR("[HKClient::onPairings] Failed to remove pairing: storage error\r\n");
                     sendTLVError(2, TLVErrorUnknown);
                     break;
                 }
 
-                Serial.println("Removed pairing with " + String(deviceIdentifier));
+                HKLOGINFO("[HKClient::onPairings] Removed pairing with id=%s\r\n", deviceIdentifier);
 
                 for (auto client : server->clients) {
                     if (client->pairingId == comparePairing->id) {
@@ -1192,7 +1176,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
 
                 if (isAdmin) {
                     if (!HKStorage::hasPairedAdmin()) {
-                        Serial.println("Last admin pairing was removed, enabling pair setup");
+                        HKLOGINFO("[HKClient::onPairings] Last admin pairing was removed, enabling pair setup\r\n");
                         server->setupMDNS();
                     }
                 }
@@ -1207,7 +1191,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
         }
         case TLVMethodListPairings: {
             if (!(permission & PairingPermissionAdmin)) {
-                Serial.println("Refusing to list pairings to non-admin controller");
+                HKLOGWARNING("[HKClient::onPairings] Refusing to list pairings to non-admin controller\r\n");
                 sendTLVError(2, TLVErrorAuthentication);
                 break;
             }
@@ -1254,6 +1238,7 @@ void HKClient::scheduleEvent(HKCharacteristic *characteristic, HKValue newValue)
 }
 
 void HKClient::sendEvents(ClientEvent *event) {
+    HKLOGINFO("[HKClient::sendEvents] sending Event\r\n");
     static byte http_headers[] = "EVENT/1.0 200 OK\r\n"
                                  "Content-Type: application/hap+json\r\n"
                                  "Transfer-Encoding: chunked\r\n\r\n";

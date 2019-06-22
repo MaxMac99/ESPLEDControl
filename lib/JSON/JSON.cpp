@@ -36,9 +36,7 @@ void JSON::write(const char *format, ...) {
         len = vsnprintf((char *) buffer + pos, size - pos, format, arg_ptr);
         va_end(arg_ptr);
 
-        if (len > size - 1) {
-            Serial.println("JSON Value too large!");
-        } else {
+        if (len < size) {
             pos += len;
         }
     } else {
@@ -63,7 +61,6 @@ void JSON::startObject() {
             nesting[nestingId++] = JSONNestingObject;
             break;
         default:
-            Serial.println("Unexpected object start");
             state = JSONStateError;
     }
 }
@@ -93,7 +90,6 @@ void JSON::endObject() {
             }
             break;
         default:
-            Serial.println("Unexpected object end");
             state = JSONStateError;
     }
 }
@@ -115,7 +111,6 @@ void JSON::startArray() {
             nesting[nestingId++] = JSONNestingArray;
             break;
         default:
-            Serial.println("Unexpected array start");
             state = JSONStateError;
     }
 }
@@ -145,7 +140,6 @@ void JSON::endArray() {
             }
             break;
         default:
-            Serial.println("Unexpected array end");
             state = JSONStateError;
     }
 }
@@ -173,7 +167,6 @@ void JSON::setInt(long long value) {
             state = JSONStateObjectValue;
             break;
         default:
-            Serial.println("Unexpected int");
             state = JSONStateError;
     }
 }
@@ -201,7 +194,6 @@ void JSON::setFloat(float value) {
             state = JSONStateObjectValue;
             break;
         default:
-            Serial.println("Unexpected float");
             state = JSONStateError;
     }
 }
@@ -237,7 +229,6 @@ void JSON::setString(const char *value) {
             state = JSONStateObjectValue;
             break;
         default:
-            Serial.println("Unexpected string");
             state = JSONStateError;
     }
 }
@@ -265,7 +256,6 @@ void JSON::setBool(bool value) {
             state = JSONStateObjectValue;
             break;
         default:
-            Serial.println("Unexpected boolean");
             state = JSONStateError;
     }
 }
@@ -293,7 +283,6 @@ void JSON::setNull() {
             state = JSONStateObjectValue;
             break;
         default:
-            Serial.println("Unexpected null");
             state = JSONStateError;
     }
 }

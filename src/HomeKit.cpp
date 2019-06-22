@@ -14,11 +14,11 @@ HomeKit::~HomeKit() {
 }
 
 void HomeKit::setup() {
-    Serial.println("AccessoryID: " + storage->getAccessoryId());
+    HKLOGINFO("[HomeKit::setup] AccessoryID: %s\r\n", storage->getAccessoryId().c_str());
 
     srp_init((uint8_t *) password.c_str());
 
-    Serial.println("Password: " + String((char *) srp_pinMessage() + 11));
+    HKLOGINFO("[HomeKit::setup] Password: %s\r\n", (char *) srp_pinMessage() + 11);
 
     accessory->setup();
 
