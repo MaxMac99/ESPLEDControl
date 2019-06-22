@@ -4,7 +4,7 @@
 
 #include "JSON.h"
 
-JSON::JSON(size_t bufferSize, std::function<void(uint8_t *buffer, size_t size)> onFlush) : size(bufferSize), pos(0), buffer((byte *) malloc(bufferSize)), state(JSONStateStart), nestingId(0), nesting(), onFlush(std::move(onFlush)) {}
+JSON::JSON(size_t bufferSize, std::function<void(uint8_t *buffer, size_t size)> onFlush) : buffer((byte *) malloc(bufferSize)), size(bufferSize), pos(0), state(JSONStateStart), nestingId(0), nesting(), onFlush(std::move(onFlush)) {}
 
 JSON::~JSON() {
     flush();

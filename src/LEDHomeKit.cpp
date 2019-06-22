@@ -13,16 +13,15 @@ LEDHomeKit::~LEDHomeKit() {
 }
 
 void LEDHomeKit::setup() {
-    auto accessory = new HKAccessory(AccessoryLightbulb);
+    auto accessory = new HKAccessory(HKAccessoryLightbulb);
     accessory->addInfoService("MaxLedStrip", "MaxMac Co.", "LEDs", "1234567", "1.0.1");
 
-    auto onCharacteristic = new HKCharacteristic(HKCharacteristicOn, HKValue::setBool(false), PermissionPairedRead | PermissionPairedWrite, "On", FormatBool);
+    auto onCharacteristic = new HKCharacteristic(HKCharacteristicOn, HKValue(FormatBool, false), PermissionPairedRead | PermissionPairedWrite | PermissionNotify, "On", FormatBool);
     onCharacteristic->setGetter(std::bind(&LEDHomeKit::onOnGet, this));
     onCharacteristic->setSetter(std::bind(&LEDHomeKit::onOnSet, this, std::placeholders::_1));
 
-    auto lightbulbService = new HKService(ServiceLightBulb);
+    auto lightbulbService = new HKService(HKServiceLightBulb, false, true);
     lightbulbService->addCharacteristic(onCharacteristic);
-    lightbulbService->setPrimary(true);
 
     accessory->addService(lightbulbService);
     hk->setAccessory(accessory);
@@ -48,5 +47,5 @@ void LEDHomeKit::onOnSet(HKValue value) {
 
 HKValue LEDHomeKit::onOnGet() {
     Serial.println("LED On GET");
-    return HKValue::setBool(false);
+    return HKValue(FormatBool, false);
 }

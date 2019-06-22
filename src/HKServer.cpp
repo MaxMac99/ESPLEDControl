@@ -8,6 +8,8 @@
 #include "lwip/tcp.h"
 #include <include/ClientContext.h>
 
+#define NOTIFICATION_UPDATE_FREQUENCY 1000
+
 HKServer::HKServer(HomeKit *hk) : WiFiServer(PORT), hk(hk), mdnsService() {
 }
 
@@ -43,12 +45,15 @@ void HKServer::update() {
 
         if (!client->connected()) {
             Serial.println("Client disconnected");
+            hk->getAccessory()->clearCallbackEvents(client);
             delete *it;
             it = clients.erase(it);
         } else {
             it++;
         }
     }
+
+    processNotifications();
 }
 
 bool HKServer::isPairing() {
@@ -94,7 +99,7 @@ int HKServer::setupMDNS() {
         }
     }
 
-    HKService *info = hk->getAccessory()->getService(ServiceAccessoryInfo);
+    HKService *info = hk->getAccessory()->getService(HKServiceAccessoryInfo);
     if (info == nullptr) {
         return -1;
     }
@@ -144,4 +149,57 @@ int HKServer::setupMDNS() {
 
     // setupId
     return true;
+}
+
+void HKServer::processNotifications() {
+    for (auto client : clients) {
+        if (millis() - client->lastUpdate > NOTIFICATION_UPDATE_FREQUENCY && !client->events.empty()) {
+            auto it = client->events.begin();
+
+            auto eventsHead = (ClientEvent *) malloc(sizeof(ClientEvent));
+            eventsHead->characteristic = (*it)->getCharacteristic();
+            eventsHead->value = (*it)->getValue();
+            eventsHead->next = nullptr;
+
+            delete *it;
+            it = client->events.erase(it);
+
+            ClientEvent *eventsTail = eventsHead;
+            for (; it != client->events.end();) {
+                ClientEvent *e = eventsHead;
+                while (e) {
+                    if (e->characteristic == (*it)->getCharacteristic()) {
+                        break;
+                    }
+                    e = e->next;
+                }
+
+                if (!e) {
+                    e = (ClientEvent *) malloc(sizeof(ClientEvent));
+                    e->characteristic = (*it)->getCharacteristic();
+                    e->next = nullptr;
+
+                    eventsTail->next = e;
+                    eventsTail = e;
+                }
+
+                e->value = (*it)->getValue();
+
+                delete *it;
+                it = client->events.erase(it);
+            }
+
+            client->sendEvents(eventsHead);
+
+            ClientEvent *e = eventsHead;
+            while (e) {
+                ClientEvent *next = e->next;
+                free(e);
+
+                e = next;
+            }
+
+            client->lastUpdate = millis();
+        }
+    }
 }

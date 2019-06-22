@@ -29,6 +29,7 @@ public:
 private:
     int setupMDNS();
     HKClient *availableHK(uint8_t* status = NULL);
+    void processNotifications();
 private:
     HomeKit *hk;
 

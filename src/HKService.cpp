@@ -4,12 +4,13 @@
 
 #include "HKService.h"
 
-HKService::HKService(HKServiceType type) : id(0), serviceType(type), hidden(false), primary(false) {
+HKService::HKService(HKServiceType type, bool hidden, bool primary) : id(0), accessory(nullptr), serviceType(type), hidden(hidden), primary(primary) {
 
 }
 
 void HKService::addCharacteristic(HKCharacteristic *characteristic) {
     characteristics.push_back(characteristic);
+    characteristic->service = this;
 }
 
 HKCharacteristic *HKService::getCharacteristic(HKCharacteristicType characteristicType) {
@@ -30,37 +31,7 @@ unsigned int HKService::getId() const {
     return id;
 }
 
-void HKService::setId(unsigned int id) {
-    HKService::id = id;
-}
-
-void HKService::setupCharacteristics(unsigned int &iid) {
-    for (HKCharacteristic *characteristic : characteristics) {
-        if (characteristic->getId() >= iid) {
-            iid = characteristic->getId()+1;
-        } else {
-            characteristic->setId(iid++);
-        }
-    }
-}
-
-std::vector<HKCharacteristic *> HKService::getCharacteristics() {
-    return characteristics;
-}
-
-bool HKService::isHidden() {
-    return hidden;
-}
-
-bool HKService::isPrimary() {
-    return primary;
-}
-
-std::vector<HKService *> HKService::getLinkedServices() {
-    return linked;
-}
-
-void HKService::serializeToJSON(JSON &json, HKValue *value) {
+void HKService::serializeToJSON(JSON &json, HKValue *value, HKClient *client) {
     json.setString("iid");
     json.setInt(id);
 
@@ -69,18 +40,17 @@ void HKService::serializeToJSON(JSON &json, HKValue *value) {
     typeConv.toUpperCase();
     json.setString(typeConv.c_str());
 
-    /*
     json.setString("hidden");
     json.setBool(hidden);
 
     json.setString("primary");
-    json.setBool(primary);*/
+    json.setBool(primary);
 
-    if (!linked.empty()) {
-        json.setString("linked");
+    if (!linkedServices.empty()) {
+        json.setString("linkedServices");
         json.startArray();
 
-        for (auto link : linked) {
+        for (auto link : linkedServices) {
             json.setInt(link->id);
         }
 
@@ -92,22 +62,26 @@ void HKService::serializeToJSON(JSON &json, HKValue *value) {
 
     for (auto characteristic : characteristics) {
         json.startObject();
-        characteristic->serializeToJSON(json, value);
+        characteristic->serializeToJSON(json, value, 0xF, client);
         json.endObject();
     }
 
     json.endArray();
 }
 
-void HKService::setPrimary(bool primary) {
-    HKService::primary = primary;
-}
-
-HKCharacteristic *HKService::findCharacteristic(unsigned int id) {
+HKCharacteristic *HKService::findCharacteristic(unsigned int iid) {
     for (auto ch : characteristics) {
-        if (ch->getId() == id) {
+        if (ch->getId() == iid) {
             return ch;
         }
     }
     return nullptr;
+}
+
+void HKService::addLinkedService(HKService *service) {
+    linkedServices.push_back(service);
+}
+
+HKAccessory *HKService::getAccessory() {
+    return accessory;
 }

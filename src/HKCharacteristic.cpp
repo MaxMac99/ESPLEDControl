@@ -1,49 +1,21 @@
-#include <utility>
-
 //
 // Created by Max Vissing on 2019-04-26.
 //
 
 #include "HKCharacteristic.h"
-#include "HKClient.h"
+
 
 HKCharacteristic::HKCharacteristic(HKCharacteristicType type, const HKValue &value, uint8_t permissions,
-                                   String description, HKFormat format, HKUnit unit) : id(0), type(type), value(value), permissions(permissions), description(std::move(description)), unit(unit), format(format), minValue(nullptr), maxValue(nullptr), minStep(nullptr), maxLen(nullptr), maxDataLen(nullptr), validValues(), validValuesRanges(), getter(nullptr), setter(nullptr), callback(nullptr), context(nullptr) {
+                                   String description, HKFormat format, HKUnit unit) : id(0), service(nullptr), type(type), value(value), permissions(permissions), description(std::move(description)), unit(unit), format(format), minValue(nullptr), maxValue(nullptr), minStep(nullptr), maxLen(nullptr), maxDataLen(nullptr), validValues(), validValuesRanges(), getter(nullptr), setter(nullptr), callback(nullptr) {
 
-}
-
-void HKCharacteristic::setMinValue(float *minValue) {
-    HKCharacteristic::minValue = minValue;
-}
-
-void HKCharacteristic::setMaxValue(float *maxValue) {
-    HKCharacteristic::maxValue = maxValue;
-}
-
-void HKCharacteristic::setMinStep(float *minStep) {
-    HKCharacteristic::minStep = minStep;
-}
-
-void HKCharacteristic::setMaxLen(int *maxLen) {
-    HKCharacteristic::maxLen = maxLen;
-}
-
-void HKCharacteristic::setMaxDataLen(int *maxDataLen) {
-    HKCharacteristic::maxDataLen = maxDataLen;
-}
-
-void HKCharacteristic::setValidValues(const HKValidValues &validValues) {
-    HKCharacteristic::validValues = validValues;
 }
 
 void HKCharacteristic::setGetter(const std::function<HKValue()> &getter) {
     HKCharacteristic::getter = getter;
-    getterEx = std::bind(&HKCharacteristic::exOldGetter, std::placeholders::_1);
 }
 
 void HKCharacteristic::setSetter(const std::function<void(const HKValue)> &setter) {
     HKCharacteristic::setter = setter;
-    setterEx = std::bind(&HKCharacteristic::exOldSetter, std::placeholders::_1, std::placeholders::_2);
 }
 
 HKCharacteristicType HKCharacteristic::getType() const {
@@ -51,6 +23,9 @@ HKCharacteristicType HKCharacteristic::getType() const {
 }
 
 const HKValue &HKCharacteristic::getValue() const {
+    if (getter) {
+        return getter();
+    }
     return value;
 }
 
@@ -58,55 +33,7 @@ unsigned int HKCharacteristic::getId() const {
     return id;
 }
 
-void HKCharacteristic::setId(unsigned int id) {
-    HKCharacteristic::id = id;
-}
-
-uint8_t HKCharacteristic::getPermissions() const {
-    return permissions;
-}
-
-const String &HKCharacteristic::getDescription() const {
-    return description;
-}
-
-HKFormat HKCharacteristic::getFormat() const {
-    return format;
-}
-
-HKUnit HKCharacteristic::getUnit() const {
-    return unit;
-}
-
-float *HKCharacteristic::getMinValue() const {
-    return minValue;
-}
-
-float *HKCharacteristic::getMaxValue() const {
-    return maxValue;
-}
-
-float *HKCharacteristic::getMinStep() const {
-    return minStep;
-}
-
-int *HKCharacteristic::getMaxLen() const {
-    return maxLen;
-}
-
-int *HKCharacteristic::getMaxDataLen() const {
-    return maxDataLen;
-}
-
-const HKValidValues &HKCharacteristic::getValidValues() const {
-    return validValues;
-}
-
-const HKValidValuesRanges &HKCharacteristic::getValidValuesRanges() const {
-    return validValuesRanges;
-}
-
-void HKCharacteristic::serializeToJSON(JSON &json, HKValue *jsonValue, unsigned int jsonFormatOptions) {
+void HKCharacteristic::serializeToJSON(JSON &json, HKValue *jsonValue, unsigned int jsonFormatOptions, HKClient *client) {
     json.setString("iid");
     json.setInt(id);
 
@@ -141,10 +68,9 @@ void HKCharacteristic::serializeToJSON(JSON &json, HKValue *jsonValue, unsigned 
         json.endArray();
     }
 
-    if ((jsonFormatOptions & HKCharacteristicFormatEvents) && (permissions & PermissionNotify)) {
+    if (client && (jsonFormatOptions & HKCharacteristicFormatEvents) && (permissions & PermissionNotify)) {
         json.setString("ev");
-        // TODO: json.setBool(hasNotifyCallback(HKCharacteristic::notifyClient, this));
-        json.setBool(false);
+        json.setBool(hasCallbackEvent(client));
     }
 
     if (jsonFormatOptions & HKCharacteristicFormatMeta) {
@@ -262,7 +188,14 @@ void HKCharacteristic::serializeToJSON(JSON &json, HKValue *jsonValue, unsigned 
     }
 
     if (permissions & PermissionPairedRead) {
-        HKValue v = jsonValue ? *jsonValue : getterEx ? getterEx(this) : value;
+        if (jsonValue) {
+            Serial.println("JSON Value");
+        } else if (getter) {
+            Serial.println("Getter");
+        } else {
+            Serial.println("Value");
+        }
+        HKValue v = jsonValue ? *jsonValue : getter ? getter() : value;
 
         if (v.isNull) {
             json.setString("value");
@@ -303,12 +236,13 @@ void HKCharacteristic::serializeToJSON(JSON &json, HKValue *jsonValue, unsigned 
     }
 }
 
-void HKCharacteristic::setValue(JsonVariant jsonValue) {
+HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
     if (!(permissions & PermissionPairedWrite)) {
         Serial.println("Failed to update: no write permission");
-        return;
+        return HAPStatusReadOnly;
     }
 
+    HKValue hkValue = HKValue();
     switch (format) {
         case FormatBool: {
             bool result;
@@ -318,15 +252,16 @@ void HKCharacteristic::setValue(JsonVariant jsonValue) {
                 result = jsonValue.as<int>() == 1;
             } else {
                 Serial.println("Failed to update: Json is not of type bool");
-                return;
+                return HAPStatusInvalidValue;
             }
 
             Serial.println("Update Characteristic with bool: " + String(result));
 
-            if (setterEx) {
-                HKValue newValue = HKValue::setBool(result);
-                setterEx(this, newValue);
+            if (setter) {
+                hkValue = HKValue(FormatBool, result);
+                setter(hkValue);
             } else {
+                hkValue = value;
                 value.boolValue = result;
             }
             break;
@@ -341,7 +276,7 @@ void HKCharacteristic::setValue(JsonVariant jsonValue) {
                 result = jsonValue.as<uint64_t>();
             } else {
                 Serial.println("Failed to update: Json is not of type int");
-                return;
+                return HAPStatusInvalidValue;
             }
 
             uint64_t checkMinValue = 0;
@@ -385,7 +320,7 @@ void HKCharacteristic::setValue(JsonVariant jsonValue) {
 
             if (result < checkMinValue || result > checkMaxValue) {
                 Serial.println("Failed to update: int is not in range");
-                return;
+                return HAPStatusInvalidValue;
             }
 
             if (validValues.count) {
@@ -399,7 +334,7 @@ void HKCharacteristic::setValue(JsonVariant jsonValue) {
 
                 if (!matches) {
                     Serial.println("Failed to update: int is not one of valid values");
-                    return;
+                    return HAPStatusInvalidValue;
                 }
             }
 
@@ -413,16 +348,17 @@ void HKCharacteristic::setValue(JsonVariant jsonValue) {
 
                 if (!matches) {
                     Serial.println("Failed to update: int is not one of valid values range");
-                    return;
+                    return HAPStatusInvalidValue;
                 }
             }
 
             Serial.println("Update Characteristic with int: " + String((uint32_t) result));
 
-            if (setterEx) {
-                HKValue newValue = HKValue::setInt(result);
-                setterEx(this, newValue);
+            if (setter) {
+                hkValue = HKValue(result);
+                setter(hkValue);
             } else {
+                hkValue = value;
                 value.intValue = result;
             }
             break;
@@ -433,20 +369,21 @@ void HKCharacteristic::setValue(JsonVariant jsonValue) {
                 result = jsonValue.as<float>();
             } else {
                 Serial.println("Failed to update: Json is not of type float");
-                return;
+                return HAPStatusInvalidValue;
             }
 
             if ((minValue && result < *minValue) || (maxValue && result > *maxValue)) {
                 Serial.println("Failed to update: float is not in range");
-                return;
+                return HAPStatusInvalidValue;
             }
 
             Serial.println("Update Characteristic with float: " + String(result));
 
-            if (setterEx) {
-                HKValue newValue = HKValue::setFloat(result);
-                setterEx(this, newValue);
+            if (setter) {
+                hkValue = HKValue(result);
+                setter(hkValue);
             } else {
+                hkValue = value;
                 value.floatValue = result;
             }
             break;
@@ -457,21 +394,22 @@ void HKCharacteristic::setValue(JsonVariant jsonValue) {
                 result = jsonValue.as<char *>();
             } else {
                 Serial.println("Failed to update: Json is not of type string");
-                return;
+                return HAPStatusInvalidValue;
             }
 
             int checkMaxLen = maxLen ? *maxLen : 64;
             if (strlen(result) > checkMaxLen) {
                 Serial.println("Failed to update: String is too long");
-                return;
+                return HAPStatusInvalidValue;
             }
 
             Serial.println("Update Characteristic with string: " + String(result));
 
-            if (setterEx) {
-                HKValue newValue = HKValue::setString(result);
-                setterEx(this, newValue);
+            if (setter) {
+                hkValue = HKValue(result);
+                setter(hkValue);
             } else {
+                hkValue = value;
                 value.stringValue = result;
             }
             break;
@@ -485,13 +423,108 @@ void HKCharacteristic::setValue(JsonVariant jsonValue) {
             break;
         }
     }
+
+    if (!hkValue.isNull) {
+        if (getter) {
+            hkValue = getter();
+        }
+        notify(hkValue);
+    }
+    return HAPStatusSuccess;
 }
 
-HKValue HKCharacteristic::exOldGetter(const HKCharacteristic *characteristic) {
-    return characteristic->getter();
+HAPStatus HKCharacteristic::setEvent(HKClient *client, JsonVariant jsonValue) {
+    bool events;
+    if (jsonValue.is<bool>()) {
+        events = jsonValue.as<bool>();
+    } else if (jsonValue.is<int>()) {
+        events = jsonValue.as<int>() == 1;
+    } else {
+        Serial.println("Failed to update: Json is not of type bool");
+        return HAPStatusInvalidValue;
+    }
+
+    if (!(permissions & PermissionNotify)) {
+        Serial.println("Failed to update: notifications are not supported");
+        return HAPStatusNotificationsUnsupported;
+    }
+
+    if (events) {
+        addCallbackEvent(client);
+    } else {
+        removeCallbackEvent(client);
+    }
+    return HAPStatusSuccess;
 }
 
-void HKCharacteristic::exOldSetter(const HKCharacteristic *characteristic, HKValue value) {
-    characteristic->setter(value);
+void HKCharacteristic::notify(const HKValue& newValue) {
+    ChangeCallback *temp = callback;
+    while (temp) {
+        temp->function(temp->client, this, newValue);
+        temp = temp->next;
+    }
+}
+
+bool HKCharacteristic::hasCallbackEvent(HKClient *client) {
+    ChangeCallback *temp = callback;
+    while (temp) {
+        if (temp->client == client) {
+            return true;
+        }
+        temp = temp->next;
+    }
+    return false;
+}
+
+void HKCharacteristic::removeCallbackEvent(HKClient *client) {
+    while (callback) {
+        if (callback->client != client) {
+            break;
+        }
+
+        ChangeCallback *temp = callback;
+        callback = callback->next;
+        delete temp;
+    }
+
+    if (!callback) {
+        return;
+    }
+
+    ChangeCallback *temp = callback;
+    while (temp->next) {
+        if (temp->next->client == client) {
+            ChangeCallback *next = temp->next;
+            temp->next = next->next;
+            delete next;
+        } else {
+            temp = temp->next;
+        }
+    }
+}
+
+void HKCharacteristic::addCallbackEvent(HKClient *client) {
+    auto newCallback = new ChangeCallback();
+    newCallback->client = client;
+    newCallback->function = std::bind(&HKClient::scheduleEvent, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
+    if (callback) {
+        ChangeCallback *temp = callback;
+        if (temp->client == newCallback->client) {
+            delete newCallback;
+            return;
+        }
+
+        while (temp->next) {
+            if (temp->client == newCallback->client) {
+                delete newCallback;
+                return;
+            }
+            temp = temp->next;
+        }
+        temp->next = newCallback;
+    } else {
+        callback = newCallback;
+    }
 }
 

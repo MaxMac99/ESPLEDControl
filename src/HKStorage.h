@@ -51,6 +51,8 @@ public:
     KeyPair getAccessoryKey();
 
     static bool isPaired();
+    static bool hasPairedAdmin();
+    static std::vector<Pairing *> getPairings();
     static int addPairing(const char *deviceId, const byte *deviceKey, byte permission);
     static Pairing *findPairing(const char *deviceId);
     static int updatePairing(const String &deviceId, byte permission);

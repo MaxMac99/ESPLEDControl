@@ -11,6 +11,7 @@
 #include "HKAccessory.h"
 
 class HKServer;
+class HKAccessory;
 
 class HomeKit {
 public:
@@ -26,13 +27,13 @@ public:
 
     void setAccessory(HKAccessory *accessory);
     HKAccessory *getAccessory();
+
     String getAccessoryId();
     int getConfigNumber();
 
     friend class HKClient;
 private:
     String generateCustomName();
-    void setupAccessory();
 private:
     HKStorage *storage;
     HKServer *server;
@@ -40,7 +41,6 @@ private:
 
     String password;
     String name;
-    unsigned int aid;
     int configNumber;
 };
 

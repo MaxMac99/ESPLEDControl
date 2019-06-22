@@ -3,6 +3,7 @@
 //
 
 #include "HKStorage.h"
+#include "HKDefinitions.h"
 
 HKStorage::HKStorage() : data() {
     load();
@@ -54,13 +55,14 @@ void HKStorage::resetPairings() {
         EEPROM.write(i, 0);
     }
     EEPROM.end();
+    Serial.println("Reset Pairings");
 }
 
 String HKStorage::getAccessoryId() {
     if (strcmp(data.accessoryId, "") == 0) {
-        return strndup(generateAccessoryId().c_str(), 17);
+        return generateAccessoryId();
     } else {
-        return strndup(data.accessoryId, 17);
+        return strndup(data.accessoryId, ACCESSORY_ID_SIZE);
     }
 }
 
@@ -111,7 +113,7 @@ String HKStorage::generateAccessoryId() {
     Serial.println("Accessory ID: " + accessoryId);
 
     memcpy(data.accessoryId, accessoryId.c_str(), accessoryId.length());
-    return data.accessoryId;
+    return accessoryId;
 }
 
 KeyPair HKStorage::generateAccessoryKey() {
@@ -153,6 +155,7 @@ bool HKStorage::isPaired() {
         if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
             continue;
         }
+        EEPROM.end();
         return true;
     }
     EEPROM.end();
@@ -196,6 +199,7 @@ int HKStorage::updatePairing(const String &deviceId, byte permission) {
         if (strncmp(pairingData.deviceId, deviceId.c_str(), sizeof(pairingData.deviceId)) == 0) {
             pairingData.permissions = permission;
             EEPROM.put(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
+            EEPROM.end();
             return 0;
         }
     }
@@ -240,9 +244,49 @@ int HKStorage::removePairing(const String &deviceId) {
             for (size_t j = ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i; j < sizeof(PairingData); j++) {
                 EEPROM.write(j, 0);
             }
+            EEPROM.end();
             return 0;
         }
     }
     EEPROM.end();
     return -1;
+}
+
+bool HKStorage::hasPairedAdmin() {
+    PairingData pairingData{};
+    EEPROM.begin(4096);
+    for (int i = 0; i < MAX_PAIRINGS; i++) {
+        EEPROM.get(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
+        if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
+            continue;
+        }
+
+        if (pairingData.permissions & PairingPermissionAdmin) {
+            EEPROM.end();
+            return true;
+        }
+    }
+    EEPROM.end();
+    return false;
+}
+
+std::vector<Pairing *> HKStorage::getPairings() {
+    std::vector<Pairing *> pairings;
+    PairingData pairingData{};
+    EEPROM.begin(4096);
+    for (int i = 0; i < MAX_PAIRINGS; i++) {
+        EEPROM.get(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
+        if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
+            continue;
+        }
+
+        auto pairing = new Pairing();
+        pairing->id = i;
+        strncpy(pairing->deviceId, pairingData.deviceId, sizeof(pairingData.deviceId));
+        memcpy(pairing->deviceKey, pairingData.devicePublicKey, sizeof(pairingData.devicePublicKey));
+        pairing->permissions = pairingData.permissions;
+        pairings.push_back(pairing);
+    }
+    EEPROM.end();
+    return pairings;
 }

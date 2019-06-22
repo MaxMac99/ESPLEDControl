@@ -13,11 +13,18 @@
 #include <ArduinoJson.h>
 #include <ESP8266WebServer.h>
 #include "HKTLV.h"
+#include "HKDefinitions.h"
 #include "HKServer.h"
 #include "HKCharacteristic.h"
 
 const char json_200_response_headers[] =
         "HTTP/1.1 200 OK\r\n"
+        "Content-Type: application/hap+json\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "Connection: keep-alive\r\n\r\n";
+
+const char json_207_response_headers[] =
+        "HTTP/1.1 207 Multi-Status\r\n"
         "Content-Type: application/hap+json\r\n"
         "Transfer-Encoding: chunked\r\n"
         "Connection: keep-alive\r\n\r\n";
@@ -31,6 +38,8 @@ struct VerifyContext {
 };
 
 class HKServer;
+class HKEvent;
+struct ClientEvent;
 
 class HKClient : public WiFiClient {
 protected:
@@ -39,10 +48,8 @@ protected:
 public:
     ~HKClient() override;
     bool received();
-
-    HKCharacteristic *getCurrentCharacteristic() const;
-
-    HKValue *getCurrentValue() const;
+    void scheduleEvent(HKCharacteristic *characteristic, HKValue newValue);
+    void sendEvents(ClientEvent *event);
 
     friend class HKServer;
 private:
@@ -55,6 +62,8 @@ private:
     void sendTLVResponse(std::vector<HKTLV *> &message);
     void sendTLVError(byte state, TLVError error);
     void send204Response();
+    void sendJSONResponse(int errorCode, const String& message);
+    void sendJSONErrorResponse(int errorCode, HAPStatus status);
 
     static void hkdf(byte *target, byte *ikm, uint8_t ikmLength, byte *salt, uint8_t saltLength, byte *info, uint8_t infoLength);
 
@@ -64,6 +73,7 @@ private:
     void onGetAccessories();
     void onGetCharacteristics(String id, bool meta, bool perms, bool type, bool ev);
     void onUpdateCharacteristics(String jsonBody);
+    HAPStatus processUpdateCharacteristic(JsonObject object);
     void onPairings(const std::vector<byte> &body);
     void onReset();
     void onResource();
@@ -78,9 +88,8 @@ private:
     int countWrites;
     int pairingId;
     byte permission;
-
-    HKCharacteristic *currentCharacteristic;
-    HKValue *currentValue;
+    std::vector<HKEvent *> events;
+    uint64_t lastUpdate;
 private:
     enum HTTPMethod {
         HTTP_ANY,

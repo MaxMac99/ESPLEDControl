@@ -7,65 +7,39 @@
 
 #include <Arduino.h>
 #include <JSON.h>
+#include "HKClient.h"
+#include "HKDefinitions.h"
 #include "HKService.h"
+#include "HKCharacteristic.h"
 
-enum HKAccessoryCategory {
-    AccessoryOther               = 1,
-    AccessoryBridge              = 2,
-    AccessoryFan                 = 3,
-    AccessoryGarage              = 4,
-    AccessoryLightbulb           = 5,
-    AccessoryDooLock             = 6,
-    AccessoryOutlet              = 7,
-    AccessorySwitch              = 8,
-    AccessoryThermostat          = 9,
-    AccessorySensor              = 10,
-    AccessorySecuritySystem      = 11,
-    AccessoryDoor                = 12,
-    AccessoryWindow              = 13,
-    AccessoryWindowCovering      = 14,
-    AccessoryProgrammableSwitch  = 15,
-    AccessoryRangeExtender       = 16,
-    AccessoryIPCamera            = 17,
-    AccessoryVideoDoorBell       = 18,
-    AccessoryAirPurifier         = 19,
-    AccessoryHeater              = 20,
-    AccessoryAirConditioner      = 21,
-    AccessoryHumidifier          = 22,
-    AccessoryDehumidifier        = 23,
-    AccessoryAppleTV             = 24,
-    AccessorySpeaker             = 26,
-    AccessoryAirport             = 27,
-    AccessorySprinkler           = 28,
-    AccessoryFaucet              = 29,
-    AccessoryShowerHead          = 30,
-    AccessoryTelevision          = 31,
-    AccessoryTargetController    = 32
-};
+class HKService;
+class HKCharacteristic;
+class HKClient;
+
 
 class HKAccessory {
 public:
-    explicit HKAccessory(HKAccessoryCategory category=AccessoryOther);
+    explicit HKAccessory(HKAccessoryCategory category=HKAccessoryOther);
+
+    virtual void identify();
+    virtual void run();
 
     void addInfoService(const String& accName, const String& manufacturerName, const String& modelName, const String& serialNumber, const String &firmwareRevision);
     void addService(HKService *service);
-    virtual void identify();
-    void setupServices();
+    void setup();
 
+    void clearCallbackEvents(HKClient *client);
     HKService *getService(HKServiceType serviceType);
-    std::vector<HKService *> getServices();
-    void serializeToJSON(JSON &json, HKValue *value);
+    void serializeToJSON(JSON &json, HKValue *value, HKClient *client = nullptr);
     unsigned int getId() const;
     HKAccessoryCategory getCategory() const;
-    HKCharacteristic *findCharacteristic(unsigned int id);
+    HKCharacteristic *findCharacteristic(unsigned int iid);
 
     void setId(unsigned int id);
 private:
     unsigned int id;
-
     HKAccessoryCategory category;
     std::vector<HKService *> services;
-    //int config_number;
 };
 
 

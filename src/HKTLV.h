@@ -25,6 +25,14 @@ enum TLVType {
     TLVTypeSeparator = 0xff,
 };
 
+enum TLVMethod {
+    TLVMethodPairSetup = 1,
+    TLVMethodPairVerify = 2,
+    TLVMethodAddPairing = 3,
+    TLVMethodRemovePairing = 4,
+    TLVMethodListPairings = 5,
+};
+
 enum TLVError {
     TLVErrorUnknown = 1,
     TLVErrorAuthentication = 2,
@@ -43,6 +51,7 @@ public:
     byte getType() const;
     size_t getSize() const;
     byte *getValue();
+    int getIntValue();
     static std::vector<byte> formatTLV(const std::vector<HKTLV *> &values);
     static std::vector<HKTLV *> parseTLV(const std::vector<byte> &body);
     static std::vector<HKTLV *> parseTLV(const byte *body, size_t size);
@@ -52,8 +61,6 @@ private:
     byte *value;
     size_t size;
 };
-
-void sendTLVs(std::vector<HKTLV *> values);
 
 
 #endif //HAP_SERVER_HKTLV_H

@@ -5,7 +5,7 @@
 #include "HomeKit.h"
 #include "../lib/crypto/srp.h"
 
-HomeKit::HomeKit(String password, String name) : storage(new HKStorage()), server(new HKServer(this)), accessory(nullptr), password(std::move(password)), name(std::move(name)), aid(0), configNumber(1) {
+HomeKit::HomeKit(String password, String name) : storage(new HKStorage()), server(new HKServer(this)), accessory(nullptr), password(std::move(password)), name(std::move(name)), configNumber(1) {
 }
 
 HomeKit::~HomeKit() {
@@ -15,18 +15,19 @@ HomeKit::~HomeKit() {
 
 void HomeKit::setup() {
     Serial.println("AccessoryID: " + storage->getAccessoryId());
-    storage->resetPairings();
 
     srp_init((uint8_t *) password.c_str());
 
     Serial.println("Password: " + String((char *) srp_pinMessage() + 11));
-    setupAccessory();
+
+    accessory->setup();
 
     server->setup();
 }
 
 void HomeKit::update() {
     server->update();
+    accessory->run();
 }
 
 void HomeKit::saveSSID(const String& ssid, const String& wiFiPassword) {
@@ -46,7 +47,7 @@ String HomeKit::getWiFiPassword() {
 String HomeKit::getName() {
     if (name == "") {
         if (accessory) {
-            HKService *info = accessory->getService(ServiceAccessoryInfo);
+            HKService *info = accessory->getService(HKServiceAccessoryInfo);
             if (!info) {
                 return generateCustomName();
             }
@@ -72,18 +73,9 @@ String HomeKit::generateCustomName() {
 }
 
 void HomeKit::setAccessory(HKAccessory *accessory) {
-    HomeKit::accessory = accessory;
-}
-
-void HomeKit::setupAccessory() {
-    aid = 1;
-    if (accessory->getId() >= aid) {
-        aid = accessory->getId()+1;
-    } else {
-        accessory->setId(aid++);
+    if (accessory->getId() == 1) {
+        HomeKit::accessory = accessory;
     }
-
-    accessory->setupServices();
 }
 
 String HomeKit::getAccessoryId() {

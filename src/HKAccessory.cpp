@@ -5,65 +5,39 @@
 #include "HKAccessory.h"
 
 
-HKAccessory::HKAccessory(HKAccessoryCategory category) : id(0), category(category) {
-
+HKAccessory::HKAccessory(HKAccessoryCategory category) : id(1), category(category) {
 }
 
 void HKAccessory::addInfoService(const String& accName, const String& manufacturerName, const String& modelName, const String& serialNumber, const String &firmwareRevision) {
-    auto *infoService = new HKService(HKServiceType::ServiceAccessoryInfo);
+    auto *infoService = new HKService(HKServiceType::HKServiceAccessoryInfo);
     addService(infoService);
 
-    char *convName = (char *) malloc(accName.length()+1);
-    strcpy(convName, accName.c_str());
-    Serial.println("AccName: " + String(convName));
-    HKValue nameValue{};
-    nameValue.format = FormatString;
-    nameValue.stringValue = convName;
-    HKCharacteristic *nameChar = new HKCharacteristic(HKCharacteristicServiceName, nameValue, PermissionPairedRead, "Name", FormatString);
-    infoService->addCharacteristic(nameChar);
-
-    char *convManufacturer = (char *) malloc(manufacturerName.length()+1);
-    strcpy(convManufacturer, manufacturerName.c_str());
-    HKValue manufacturerValue{};
-    manufacturerValue.format = FormatString;
-    manufacturerValue.stringValue = convManufacturer;
-    HKCharacteristic *manufacturerChar = new HKCharacteristic(HKCharacteristicManufactuer, manufacturerValue, PermissionPairedRead, "Manufacturer", FormatString);
-    infoService->addCharacteristic(manufacturerChar);
-
-    char *convModel = (char *) malloc(modelName.length()+1);
-    strcpy(convModel, modelName.c_str());
-    HKValue modelValue{};
-    modelValue.format = FormatString;
-    modelValue.stringValue = convModel;
-    HKCharacteristic *modelChar = new HKCharacteristic(HKCharacteristicModelName, modelValue, PermissionPairedRead, "Model", FormatString);
-    infoService->addCharacteristic(modelChar);
-
-    char *convNumber = (char *) malloc(serialNumber.length()+1);
-    strcpy(convNumber, serialNumber.c_str());
-    HKValue serialValue{};
-    serialValue.format = FormatString;
-    serialValue.stringValue = convNumber;
-    HKCharacteristic *serialChar = new HKCharacteristic(HKCharacteristicSerialNumber, serialValue, PermissionPairedRead, "Serial Number", FormatString);
-    infoService->addCharacteristic(serialChar);
-
-    /*
-    char *convFirmwareRevision = (char *) malloc(firmwareRevision.length()+1);
-    strcpy(convNumber, serialNumber.c_str());
-    HKValue firmwareRevisionValue{};
-    firmwareRevisionValue.format = FormatString;
-    firmwareRevisionValue.stringValue = convFirmwareRevision;
-    HKCharacteristic *firmwareRevisionChar = new HKCharacteristic(HKCharacteristicFirmwareRevision, firmwareRevisionValue, PermissionPairedRead, "Firmware Revision", FormatString);
-    infoService->addCharacteristic(firmwareRevisionChar);*/
-
-    HKValue identifyValue{};
-    identifyValue.format = FormatBool;
+    HKValue identifyValue = HKValue(FormatBool);
     HKCharacteristic *identifyChar = new HKCharacteristic(HKCharacteristicIdentify, identifyValue, PermissionPairedWrite, "Identify", FormatBool);
     identifyChar->setSetter(std::bind(&HKAccessory::identify, this));
     infoService->addCharacteristic(identifyChar);
+
+    HKValue manufacturerValue = HKValue(manufacturerName);
+    HKCharacteristic *manufacturerChar = new HKCharacteristic(HKCharacteristicManufactuer, manufacturerValue, PermissionPairedRead, "Manufacturer", FormatString);
+    infoService->addCharacteristic(manufacturerChar);
+
+    HKValue modelValue = HKValue(modelName);
+    HKCharacteristic *modelChar = new HKCharacteristic(HKCharacteristicModelName, modelValue, PermissionPairedRead, "Model", FormatString);
+    infoService->addCharacteristic(modelChar);
+
+    Serial.println("AccName: " + String(accName));
+    HKValue nameValue = HKValue(accName);
+    HKCharacteristic *nameChar = new HKCharacteristic(HKCharacteristicServiceName, nameValue, PermissionPairedRead, "Name", FormatString);
+    infoService->addCharacteristic(nameChar);
+
+    HKValue serialValue = HKValue(serialNumber);
+    HKCharacteristic *serialChar = new HKCharacteristic(HKCharacteristicSerialNumber, serialValue, PermissionPairedRead, "Serial Number", FormatString);
+    infoService->addCharacteristic(serialChar);
 }
 
 void HKAccessory::addService(HKService *service) {
     services.push_back(service);
+    service->accessory = this;
 }
 
 void HKAccessory::identify() {
@@ -88,28 +62,11 @@ void HKAccessory::setId(unsigned int id) {
     HKAccessory::id = id;
 }
 
-void HKAccessory::setupServices() {
-    unsigned int iid = 1;
-    for (HKService *service : services) {
-        if (service->getId() >= iid) {
-            iid = service->getId()+1;
-        } else {
-            service->setId(iid++);
-        }
-
-        service->setupCharacteristics(iid);
-    }
-}
-
 HKAccessoryCategory HKAccessory::getCategory() const {
     return category;
 }
 
-std::vector<HKService *> HKAccessory::getServices() {
-    return services;
-}
-
-void HKAccessory::serializeToJSON(JSON &json, HKValue *value) {
+void HKAccessory::serializeToJSON(JSON &json, HKValue *value, HKClient *client) {
     json.startObject();
 
     json.setString("aid");
@@ -120,7 +77,7 @@ void HKAccessory::serializeToJSON(JSON &json, HKValue *value) {
 
     for (auto service : services) {
         json.startObject();
-        service->serializeToJSON(json, value);
+        service->serializeToJSON(json, value, client);
         json.endObject();
     }
 
@@ -129,11 +86,33 @@ void HKAccessory::serializeToJSON(JSON &json, HKValue *value) {
     json.endObject();
 }
 
-HKCharacteristic *HKAccessory::findCharacteristic(unsigned int id) {
+HKCharacteristic *HKAccessory::findCharacteristic(unsigned int iid) {
     for (auto service : services) {
-        if (HKCharacteristic *result = service->findCharacteristic(id)) {
+        if (HKCharacteristic *result = service->findCharacteristic(iid)) {
             return result;
         }
     }
     return nullptr;
+}
+
+void HKAccessory::run() {
+
+}
+
+void HKAccessory::setup() {
+    unsigned int iid = 1;
+    for (auto service: services) {
+        service->id = iid++;
+        for (auto characteristic : service->characteristics) {
+            characteristic->id = iid++;
+        }
+    }
+}
+
+void HKAccessory::clearCallbackEvents(HKClient *client) {
+    for (auto service : services) {
+        for (auto characteristic : service->characteristics) {
+            characteristic->removeCallbackEvent(client);
+        }
+    }
 }

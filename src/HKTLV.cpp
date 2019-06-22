@@ -138,3 +138,11 @@ HKTLV *HKTLV::findTLV(const std::vector<HKTLV *> &values, const TLVType &type) {
     }
     return *findEncryptedData;
 }
+
+int HKTLV::getIntValue() {
+    int result = 0;
+    for (int i = size-1; i >= 0; i--) {
+        result = (result << 8) + value[i];
+    }
+    return result;
+}
