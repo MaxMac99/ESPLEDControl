@@ -138,7 +138,7 @@ enum HKCharacteristicType {
     HKCharacteristicManufactuer = 0x20,
     HKCharacteristicModelName = 0x21,
     HKCharacteristicMotionDetect = 0x22,
-    HKCharacteristicServiceName = 0x23,
+    HKCharacteristicName = 0x23,
     HKCharacteristicObstruction = 0x24,
     HKCharacteristicOn = 0x25,
     HKCharacteristicOutletInUse = 0x26,
@@ -272,16 +272,16 @@ public:
     inline HKValue() : isNull(true), isStatic(false), format(FormatBool) {};
     inline explicit HKValue(HKFormat format) : isNull(false), isStatic(false), format(format) {};
     inline HKValue(HKFormat format, bool value) : isNull(false), isStatic(false), format(format), boolValue(value) {};
-    inline explicit HKValue(int value) : isNull(false), isStatic(false), format(FormatInt), intValue(value) {};
-    inline explicit HKValue(uint8_t value) : isNull(false), isStatic(false), format(FormatUInt8), intValue(value) {};
-    inline explicit HKValue(uint16_t value) : isNull(false), isStatic(false), format(FormatUInt16), intValue(value) {};
-    inline explicit HKValue(uint32_t value) : isNull(false), isStatic(false), format(FormatUInt32), intValue(value) {};
-    inline explicit HKValue(uint64_t value) : isNull(false), isStatic(false), format(FormatUInt64), intValue(value) {};
-    inline explicit HKValue(float value) : isNull(false), isStatic(false), format(FormatFloat), floatValue(value) {};
-    inline explicit HKValue(const char *value) : isNull(false), isStatic(false), format(FormatString) {
+    inline explicit HKValue(HKFormat format, int value) : isNull(false), isStatic(false), format(format), intValue(value) {};
+    inline explicit HKValue(HKFormat format, uint8_t value) : isNull(false), isStatic(false), format(format), intValue(value) {};
+    inline explicit HKValue(HKFormat format, uint16_t value) : isNull(false), isStatic(false), format(format), intValue(value) {};
+    inline explicit HKValue(HKFormat format, uint32_t value) : isNull(false), isStatic(false), format(format), intValue(value) {};
+    inline explicit HKValue(HKFormat format, uint64_t value) : isNull(false), isStatic(false), format(format), intValue(value) {};
+    inline explicit HKValue(HKFormat format, float value) : isNull(false), isStatic(false), format(format), floatValue(value) {};
+    inline explicit HKValue(HKFormat format, const char *value) : isNull(false), isStatic(false), format(format) {
         stringValue = strdup(value);
     };
-    inline explicit HKValue(const String& value) : isNull(false), isStatic(false), format(FormatString) {
+    inline explicit HKValue(HKFormat format, const String& value) : isNull(false), isStatic(false), format(format) {
         stringValue = strdup(value.c_str());
     };
     inline HKValue(const HKValue &other) : isNull(other.isNull), isStatic(other.isStatic), format(other.format) {

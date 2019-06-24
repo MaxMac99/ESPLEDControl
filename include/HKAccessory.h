@@ -11,31 +11,38 @@
 #include "HKDefinitions.h"
 #include "HKService.h"
 #include "HKCharacteristic.h"
+#include "HKServer.h"
+#include "HomeKit.h"
 
 class HKService;
 class HKCharacteristic;
 class HKClient;
+class HKServer;
+class HomeKit;
 
 
 class HKAccessory {
 public:
     explicit HKAccessory(HKAccessoryCategory category=HKAccessoryOther);
 
-    virtual void identify();
-    virtual void run();
+    virtual void identify() {};
+    virtual void run() = 0;
+    virtual void setup() = 0;
 
     void addInfoService(const String& accName, const String& manufacturerName, const String& modelName, const String& serialNumber, const String &firmwareRevision);
     void addService(HKService *service);
-    void setup();
 
-    void clearCallbackEvents(HKClient *client);
     HKService *getService(HKServiceType serviceType);
-    void serializeToJSON(JSON &json, HKValue *value, HKClient *client = nullptr);
+    HKCharacteristic *findCharacteristic(unsigned int iid);
     unsigned int getId() const;
     HKAccessoryCategory getCategory() const;
-    HKCharacteristic *findCharacteristic(unsigned int iid);
-
-    void setId(unsigned int id);
+private:
+    void prepareIDs();
+    void clearCallbackEvents(HKClient *client);
+    void serializeToJSON(JSON &json, HKValue *value, HKClient *client = nullptr);
+    friend HKServer;
+    friend HKClient;
+    friend HomeKit;
 private:
     unsigned int id;
     HKAccessoryCategory category;

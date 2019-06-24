@@ -7,16 +7,15 @@
 
 #include <Arduino.h>
 #include "HomeKit.h"
+#include "LEDAccessory.h"
 #include <WiFiSetup.h>
 
 class LEDHomeKit {
 public:
-    explicit LEDHomeKit(String password);
+    explicit LEDHomeKit(String password, String setupId);
     ~LEDHomeKit();
     void setup();
     void update();
-    void onOnSet(HKValue value);
-    HKValue onOnGet();
 private:
     void handleSSIDChange(const String& ssid, const String& password);
 private:

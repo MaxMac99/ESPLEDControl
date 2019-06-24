@@ -4,7 +4,7 @@
 
 #include "LEDHomeKit.h"
 
-LEDHomeKit::LEDHomeKit(String password) : hk(new HomeKit(std::move(password))), wiFiSetup(nullptr) {
+LEDHomeKit::LEDHomeKit(String password, String setupId) : hk(new HomeKit(std::move(password), setupId)), wiFiSetup(nullptr) {
 }
 
 LEDHomeKit::~LEDHomeKit() {
@@ -13,17 +13,8 @@ LEDHomeKit::~LEDHomeKit() {
 }
 
 void LEDHomeKit::setup() {
-    auto accessory = new HKAccessory(HKAccessoryLightbulb);
+    auto accessory = new LEDAccessory();
     accessory->addInfoService("MaxLedStrip", "MaxMac Co.", "LEDs", "1234567", "1.0.1");
-
-    auto onCharacteristic = new HKCharacteristic(HKCharacteristicOn, HKValue(FormatBool, false), PermissionPairedRead | PermissionPairedWrite | PermissionNotify, "On", FormatBool);
-    onCharacteristic->setGetter(std::bind(&LEDHomeKit::onOnGet, this));
-    onCharacteristic->setSetter(std::bind(&LEDHomeKit::onOnSet, this, std::placeholders::_1));
-
-    auto lightbulbService = new HKService(HKServiceLightBulb, false, true);
-    lightbulbService->addCharacteristic(onCharacteristic);
-
-    accessory->addService(lightbulbService);
     hk->setAccessory(accessory);
 
     wiFiSetup = new WiFiSetup(hk->getSSID(), hk->getWiFiPassword(), hk->getName(), std::bind(&LEDHomeKit::handleSSIDChange, this, std::placeholders::_1, std::placeholders::_2));
@@ -39,13 +30,4 @@ void LEDHomeKit::update() {
 
 void LEDHomeKit::handleSSIDChange(const String &ssid, const String &password) {
     hk->saveSSID(ssid, password);
-}
-
-void LEDHomeKit::onOnSet(HKValue value) {
-    Serial.println("LED On SET: " + String(value.boolValue));
-}
-
-HKValue LEDHomeKit::onOnGet() {
-    Serial.println("LED On GET");
-    return HKValue(FormatBool, false);
 }

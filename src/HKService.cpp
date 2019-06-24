@@ -27,10 +27,6 @@ HKServiceType HKService::getServiceType() const {
     return serviceType;
 }
 
-unsigned int HKService::getId() const {
-    return id;
-}
-
 void HKService::serializeToJSON(JSON &json, HKValue *value, HKClient *client) {
     json.setString("iid");
     json.setInt(id);

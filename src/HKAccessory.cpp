@@ -17,19 +17,19 @@ void HKAccessory::addInfoService(const String& accName, const String& manufactur
     identifyChar->setSetter(std::bind(&HKAccessory::identify, this));
     infoService->addCharacteristic(identifyChar);
 
-    HKValue manufacturerValue = HKValue(manufacturerName);
+    HKValue manufacturerValue = HKValue(FormatString, manufacturerName);
     HKCharacteristic *manufacturerChar = new HKCharacteristic(HKCharacteristicManufactuer, manufacturerValue, PermissionPairedRead, "Manufacturer", FormatString);
     infoService->addCharacteristic(manufacturerChar);
 
-    HKValue modelValue = HKValue(modelName);
+    HKValue modelValue = HKValue(FormatString, modelName);
     HKCharacteristic *modelChar = new HKCharacteristic(HKCharacteristicModelName, modelValue, PermissionPairedRead, "Model", FormatString);
     infoService->addCharacteristic(modelChar);
 
-    HKValue nameValue = HKValue(accName);
-    HKCharacteristic *nameChar = new HKCharacteristic(HKCharacteristicServiceName, nameValue, PermissionPairedRead, "Name", FormatString);
+    HKValue nameValue = HKValue(FormatString, accName);
+    HKCharacteristic *nameChar = new HKCharacteristic(HKCharacteristicName, nameValue, PermissionPairedRead, "Name", FormatString);
     infoService->addCharacteristic(nameChar);
 
-    HKValue serialValue = HKValue(serialNumber);
+    HKValue serialValue = HKValue(FormatString, serialNumber);
     HKCharacteristic *serialChar = new HKCharacteristic(HKCharacteristicSerialNumber, serialValue, PermissionPairedRead, "Serial Number", FormatString);
     infoService->addCharacteristic(serialChar);
 }
@@ -37,9 +37,6 @@ void HKAccessory::addInfoService(const String& accName, const String& manufactur
 void HKAccessory::addService(HKService *service) {
     services.push_back(service);
     service->accessory = this;
-}
-
-void HKAccessory::identify() {
 }
 
 HKService *HKAccessory::getService(HKServiceType serviceType) {
@@ -54,10 +51,6 @@ HKService *HKAccessory::getService(HKServiceType serviceType) {
 
 unsigned int HKAccessory::getId() const {
     return id;
-}
-
-void HKAccessory::setId(unsigned int id) {
-    HKAccessory::id = id;
 }
 
 HKAccessoryCategory HKAccessory::getCategory() const {
@@ -93,24 +86,22 @@ HKCharacteristic *HKAccessory::findCharacteristic(unsigned int iid) {
     return nullptr;
 }
 
-void HKAccessory::run() {
-
+void HKAccessory::clearCallbackEvents(HKClient *client) {
+    for (auto service : services) {
+        for (auto characteristic : service->characteristics) {
+            characteristic->removeCallbackEvent(client);
+        }
+    }
 }
 
-void HKAccessory::setup() {
+void HKAccessory::prepareIDs() {
+    setup();
+
     unsigned int iid = 1;
     for (auto service: services) {
         service->id = iid++;
         for (auto characteristic : service->characteristics) {
             characteristic->id = iid++;
-        }
-    }
-}
-
-void HKAccessory::clearCallbackEvents(HKClient *client) {
-    for (auto service : services) {
-        for (auto characteristic : service->characteristics) {
-            characteristic->removeCallbackEvent(client);
         }
     }
 }

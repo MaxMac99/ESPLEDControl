@@ -33,7 +33,9 @@ class HKClient;
 class HKCharacteristic {
 public:
     HKCharacteristic(HKCharacteristicType type, const HKValue &value, uint8_t permissions,
-                     String description, HKFormat format, HKUnit unit = UnitNone);
+                     String description, HKFormat format, HKUnit unit=UnitNone, float *minValue=nullptr, float *maxValue=nullptr, float *minStep=nullptr, unsigned int *maxLen=nullptr, unsigned int *maxDataLen=nullptr, HKValidValues validValues=HKValidValues(), HKValidValuesRanges validValuesRanges=HKValidValuesRanges());
+
+    virtual ~HKCharacteristic();
 
     unsigned int getId() const;
     HKCharacteristicType getType() const;

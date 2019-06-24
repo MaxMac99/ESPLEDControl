@@ -14,7 +14,7 @@ void setup() {
     Serial.println();
 
     Serial.println("Start Setup");
-    homeKit = new LEDHomeKit("987-83-082");
+    homeKit = new LEDHomeKit("372-64-103", "P1F3");
 
     homeKit->setup();
     Serial.println("Finished Setup");

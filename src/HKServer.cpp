@@ -7,6 +7,7 @@
 #include "HKServer.h"
 #include "lwip/tcp.h"
 #include <include/ClientContext.h>
+#include <base64.h>
 
 #define NOTIFICATION_UPDATE_FREQUENCY 1000
 
@@ -147,7 +148,28 @@ int HKServer::setupMDNS() {
         return false;
     }
 
-    // setupId
+    if (hk->setupId && hk->setupId.length() == 4) {
+        size_t dataSize = hk->setupId.length() + hk->getAccessoryId().length() + 1;
+        char *data = (char *) malloc(dataSize);
+        snprintf(data, dataSize, "%s%s", hk->setupId.c_str(), hk->getAccessoryId().c_str());
+        data[dataSize-1] = 0;
+
+        unsigned char shaHash[64];
+        SHA512 sha512 = SHA512();
+        sha512.reset();
+        sha512.update(data, dataSize - 1);
+        sha512.finalize(shaHash, 64);
+
+        free(data);
+
+        String encoded = base64::encode(shaHash, 4, false);
+
+        if (!MDNS.addServiceTxt(service, protocol, "sh", encoded)) {
+            HKLOGERROR("[HKServer::setupMDNS] Failed to add ci category\r\n");
+            return false;
+        }
+    }
+
     return true;
 }
 

@@ -12,8 +12,8 @@
 #include <Arduino.h>
 #include <ESP8266mDNS.h>
 #include <WiFiServer.h>
-#include "HKClient.h"
 #include "HomeKit.h"
+#include "HKClient.h"
 
 class HomeKit;
 class HKClient;

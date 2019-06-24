@@ -10,43 +10,42 @@
 #endif
 
 #if HKLOGLEVEL == 0
-#define HKLOGDEBUG(str, ...) DEBUGV("[HomeKit] [DEBUG] " str, ## __VA_ARGS__)
-#define HKLOGDEBUGSINGLE(...) DEBUGV(__VA_ARGS__)
+#define HKLOGDEBUG(str, ...) Serial.printf("[HomeKit] [DEBUG] " str, ## __VA_ARGS__)
+#define HKLOGDEBUGSINGLE(...) Serial.printf(__VA_ARGS__)
 #else
 #define HKLOGDEBUG(...)
 #define HKLOGDEBUGSINGLE(...)
 #endif
 
 #if HKLOGLEVEL <= 1
-#define HKLOGINFO(str, ...) DEBUGV("[HomeKit] [INFO ] " str, ## __VA_ARGS__)
+#define HKLOGINFO(str, ...) Serial.printf("[HomeKit] [INFO ] " str, ## __VA_ARGS__)
 #else
 #define HKLOGINFO(...)
 #endif
 
 #if HKLOGLEVEL <= 2
-#define HKLOGWARNING(str, ...) DEBUGV("[HomeKit] [WARN ] " str, ## __VA_ARGS__)
+#define HKLOGWARNING(str, ...) Serial.printf("[HomeKit] [WARN ] " str, ## __VA_ARGS__)
 #else
 #define HKLOGWARNING(...)
 #endif
 
 #if HKLOGLEVEL <= 3
-#define HKLOGERROR(str, ...) DEBUGV("[HomeKit] [ERROR] " str, ## __VA_ARGS__)
+#define HKLOGERROR(str, ...) Serial.printf("[HomeKit] [ERROR] " str, ## __VA_ARGS__)
 #else
 #define HKLOGERROR(...)
 #endif
 
 #include <Arduino.h>
 #include "HKStorage.h"
-#include "HKServer.h"
 #include "HKAccessory.h"
+#include "HKServer.h"
 
-class HKServer;
 class HKAccessory;
-class HKStorage;
+class HKServer;
 
 class HomeKit {
 public:
-    explicit HomeKit(String password, String name="");
+    explicit HomeKit(String password, String setupId="", String name="");
     ~HomeKit();
     void setup();
     void update();
@@ -63,6 +62,7 @@ public:
     int getConfigNumber();
 
     friend class HKClient;
+    friend class HKServer;
 private:
     String generateCustomName();
 private:
@@ -71,6 +71,7 @@ private:
     HKAccessory *accessory;
 
     String password;
+    String setupId;
     String name;
     int configNumber;
 };

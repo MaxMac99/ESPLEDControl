@@ -78,6 +78,8 @@ void WiFiSetup::setupConfigPortal(const String& apName) {
 
     WiFi.softAP(apName);
 
+    Serial.println("[WiFiSetup] Available as " + apName);
+
     const byte DNS_PORT = 53;
     dns->setErrorReplyCode(DNSReplyCode::NoError);
     dns->start(DNS_PORT, "*", WiFi.softAPIP());
@@ -229,7 +231,11 @@ uint8_t WiFiSetup::connectWifi(const String& ssid, const String& password) {
         }
     }
 
-    return WiFi.waitForConnectResult();
+    uint8_t result = WiFi.waitForConnectResult();
+    if (result == WL_CONNECTED) {
+        Serial.printf("[WiFiSetup] Successfully connected to \"%s\"\r\n", ssid.c_str());
+    }
+    return result;
 }
 
 bool WiFiSetup::isIp(const String& str) {

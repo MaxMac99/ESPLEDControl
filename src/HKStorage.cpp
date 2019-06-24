@@ -3,7 +3,7 @@
 //
 
 #include "HKStorage.h"
-#include "HKDefinitions.h"
+#include "HomeKit.h"
 
 HKStorage::HKStorage() : data() {
     load();
@@ -55,7 +55,7 @@ void HKStorage::resetPairings() {
         EEPROM.write(i, 0);
     }
     EEPROM.end();
-    HKLOGINFO("[HKStorage::resetPairings] Reset Pairings");
+    HKLOGINFO("[HKStorage::resetPairings] Reset Pairings\r\n");
 }
 
 String HKStorage::getAccessoryId() {
@@ -100,6 +100,7 @@ String HKStorage::generateAccessoryId() {
     for (uint8_t i = 0; i < 6; i++) {
         randomNumber = random(0xFF);
         String byteToAdd = String(randomNumber, HEX);
+        byteToAdd.toUpperCase();
         if (byteToAdd.length() < 2) {
             byteToAdd = '0' + byteToAdd;
         }
@@ -240,9 +241,8 @@ int HKStorage::removePairing(const String &deviceId) {
         }
 
         if (strncmp(pairingData.deviceId, deviceId.c_str(), sizeof(pairingData.deviceId)) == 0) {
-            for (size_t j = ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i; j < sizeof(PairingData); j++) {
-                EEPROM.write(j, 0);
-            }
+            PairingData empty{};
+            EEPROM.put(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, empty);
             EEPROM.end();
             return 0;
         }

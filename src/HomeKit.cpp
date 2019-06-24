@@ -3,9 +3,9 @@
 //
 
 #include "HomeKit.h"
-#include "../lib/crypto/srp.h"
+#include <srp.h>
 
-HomeKit::HomeKit(String password, String name) : storage(new HKStorage()), server(new HKServer(this)), accessory(nullptr), password(std::move(password)), name(std::move(name)), configNumber(1) {
+HomeKit::HomeKit(String password, String setupId, String name) : storage(new HKStorage()), server(new HKServer(this)), accessory(nullptr), password(std::move(password)), setupId(std::move(setupId)), name(std::move(name)), configNumber(1) {
 }
 
 HomeKit::~HomeKit() {
@@ -16,11 +16,17 @@ HomeKit::~HomeKit() {
 void HomeKit::setup() {
     HKLOGINFO("[HomeKit::setup] AccessoryID: %s\r\n", storage->getAccessoryId().c_str());
 
+#if HKLOGLEVEL <= 1
+    for (auto pairing : HKStorage::getPairings()) {
+        HKLOGINFO("[HKStorage] Pairing id=%i deviceId=%36s permissions=%i\r\n", pairing->id, pairing->deviceId, pairing->permissions);
+    }
+#endif
+
     srp_init((uint8_t *) password.c_str());
 
     HKLOGINFO("[HomeKit::setup] Password: %s\r\n", (char *) srp_pinMessage() + 11);
 
-    accessory->setup();
+    accessory->prepareIDs();
 
     server->setup();
 }
@@ -52,7 +58,7 @@ String HomeKit::getName() {
                 return generateCustomName();
             }
 
-            HKCharacteristic *serviceName = info->getCharacteristic(HKCharacteristicServiceName);
+            HKCharacteristic *serviceName = info->getCharacteristic(HKCharacteristicName);
             if (!serviceName) {
                 return generateCustomName();
             }

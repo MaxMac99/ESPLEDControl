@@ -22,7 +22,6 @@ public:
     void addLinkedService(HKService *service);
     void addCharacteristic(HKCharacteristic *characteristic);
 
-    unsigned int getId() const;
     HKServiceType getServiceType() const;
     HKAccessory *getAccessory();
     HKCharacteristic *getCharacteristic(HKCharacteristicType characteristicType);

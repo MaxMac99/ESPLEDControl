@@ -1167,6 +1167,11 @@ void HKClient::onPairings(const std::vector<byte> &body) {
                 }
 
                 HKLOGINFO("[HKClient::onPairings] Removed pairing with id=%s\r\n", deviceIdentifier);
+#if HKLOGLEVEL <= 1
+                for (auto pPairing : HKStorage::getPairings()) {
+                    HKLOGINFO("[HKStorage] Pairing id=%i deviceId=%36s permissions=%i\r\n", pPairing->id, pPairing->deviceId, pPairing->permissions);
+                }
+#endif
 
                 for (auto client : server->clients) {
                     if (client->pairingId == comparePairing->id) {

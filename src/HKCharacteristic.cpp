@@ -6,8 +6,16 @@
 
 
 HKCharacteristic::HKCharacteristic(HKCharacteristicType type, const HKValue &value, uint8_t permissions,
-                                   String description, HKFormat format, HKUnit unit) : id(0), service(nullptr), type(type), value(value), permissions(permissions), description(std::move(description)), unit(unit), format(format), minValue(nullptr), maxValue(nullptr), minStep(nullptr), maxLen(nullptr), maxDataLen(nullptr), validValues(), validValuesRanges(), getter(nullptr), setter(nullptr), callback(nullptr) {
+                                   String description, HKFormat format, HKUnit unit, float *minValue, float *maxValue, float *minStep, unsigned int *maxLen, unsigned int *maxDataLen, HKValidValues validValues, HKValidValuesRanges validValuesRanges) : id(0), service(nullptr), type(type), value(value), permissions(permissions), description(std::move(description)), unit(unit), format(format), minValue(minValue), maxValue(maxValue), minStep(minStep), maxLen(maxLen), maxDataLen(maxDataLen), validValues(validValues), validValuesRanges(validValuesRanges), getter(nullptr), setter(nullptr), callback(nullptr) {
 
+}
+
+HKCharacteristic::~HKCharacteristic() {
+    delete minValue;
+    delete maxValue;
+    delete minStep;
+    delete maxLen;
+    delete maxDataLen;
 }
 
 void HKCharacteristic::setGetter(const std::function<HKValue()> &getter) {
@@ -347,7 +355,7 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             HKLOGINFO("[HKCharacteristic::setValue] Update Characteristic (id=%d.%d) with int: %d\r\n", service->getAccessory()->getId(), id, result);
 
             if (setter) {
-                hkValue = HKValue(result);
+                hkValue = HKValue(format, result);
                 setter(hkValue);
             } else {
                 hkValue = value;
@@ -372,7 +380,7 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             HKLOGINFO("[HKCharacteristic::setValue] Update Characteristic (id=%d.%d) with float: %f\r\n", service->getAccessory()->getId(), id, result);
 
             if (setter) {
-                hkValue = HKValue(result);
+                hkValue = HKValue(FormatFloat, result);
                 setter(hkValue);
             } else {
                 hkValue = value;
@@ -398,7 +406,7 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             HKLOGINFO("[HKCharacteristic::setValue] Update Characteristic (id=%d.%d) with string: %s\r\n", service->getAccessory()->getId(), id, result);
 
             if (setter) {
-                hkValue = HKValue(result);
+                hkValue = HKValue(FormatString, result);
                 setter(hkValue);
             } else {
                 hkValue = value;
@@ -432,18 +440,20 @@ HAPStatus HKCharacteristic::setEvent(HKClient *client, JsonVariant jsonValue) {
     } else if (jsonValue.is<int>()) {
         events = jsonValue.as<int>() == 1;
     } else {
-        HKLOGERROR("[HKCharacteristic::setEvent] Failed to update (id=%d.%d): Json is not of type bool\r\n", service->getAccessory()->getId());
+        HKLOGERROR("[HKCharacteristic::setEvent] Failed to update (id=%d.%d): Json is not of type bool\r\n", service->getAccessory()->getId(), id);
         return HAPStatusInvalidValue;
     }
 
     if (!(permissions & PermissionNotify)) {
-        HKLOGERROR("[HKCharacteristic::setEvent] Failed to update (id=%d.%d): notifications are not supported\r\n", service->getAccessory()->getId());
+        HKLOGERROR("[HKCharacteristic::setEvent] Failed to update (id=%d.%d): notifications are not supported\r\n", service->getAccessory()->getId(), id);
         return HAPStatusNotificationsUnsupported;
     }
 
     if (events) {
+        HKLOGDEBUG("Add callback id=%d\r\n", id);
         addCallbackEvent(client);
     } else {
+        HKLOGDEBUG("Remove callback id=%d\r\n", id);
         removeCallbackEvent(client);
     }
     return HAPStatusSuccess;
