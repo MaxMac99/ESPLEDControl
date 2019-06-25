@@ -976,33 +976,93 @@ void HKClient::onGetCharacteristics(String id, bool meta, bool perms, bool type,
     sendChunk(nullptr, 0);
 }
 
-void HKClient::onUpdateCharacteristics(String jsonBody) {
+void HKClient::onUpdateCharacteristics(const String &jsonBody) {
     HKLOGINFO("[HKClient::onUpdateCharacteristics] Update Characteristics\r\n");
 
-    DynamicJsonDocument doc(1024);
-    if (deserializeJson(doc, jsonBody) != DeserializationError::Ok) {
-        HKLOGERROR("[HKClient::onUpdateCharacteristics] Could not deserialize json\r\n");
+    HKLOGDEBUG("jsonBody begin: %s\r\n", jsonBody.substring(0, 20).c_str());
+    if (jsonBody.substring(0, 20) != "{\"characteristics\":[") {
+        HKLOGERROR("[HKClient::onUpdateCharacteristics] Could not deserialize json beginning not equal\r\n");
         sendJSONErrorResponse(400, HAPStatusInvalidValue);
         return;
     }
 
-    JsonArray characteristics = doc["characteristics"].as<JsonArray>();
-    if (characteristics.isNull()) {
-        HKLOGERROR("[HKClient::onUpdateCharacteristics] Could not find \"characteristics\" in json\r\n");
-        sendJSONErrorResponse(400, HAPStatusInvalidValue);
-        return;
-    }
-    for (JsonObject characteristicJSON : characteristics) {
-        processUpdateCharacteristic(characteristicJSON);
+    int cursor = 20;
+    while (jsonBody.length() > cursor) {
+        int begin = jsonBody.indexOf('{', cursor);
+        int end = jsonBody.indexOf('}', cursor);
+        if (begin == -1 || end == -1) {
+            break;
+        }
+
+        HKLOGDEBUG("jsonBody item: %s\r\n", jsonBody.substring(begin, end).c_str());
+        int aidPos = jsonBody.indexOf("\"aid\"", cursor);
+        int iidPos = jsonBody.indexOf("\"iid\"", cursor);
+        int evPos = jsonBody.indexOf("\"ev\"", cursor);
+        int valuePos = jsonBody.indexOf("\"value\"", cursor);
+        HKLOGDEBUG("jsonBody aidPos: %d iidPos: %d evPos: %d valuePos: %d\r\n", aidPos, iidPos, evPos, valuePos);
+        if (aidPos == -1 || iidPos == -1 || (evPos == -1 && valuePos == -1)) {
+            break;
+        }
+
+        int aidBeginPos = jsonBody.indexOf(':', aidPos);
+        int aidEndPos = jsonBody.indexOf(',', aidPos);
+        int iidBeginPos = jsonBody.indexOf(':', iidPos);
+        int iidEndPos = jsonBody.indexOf(',', iidPos);
+        HKLOGDEBUG("jsonBody aidBeginPos: %d aidEndPos: %d iidBeginPos: %d iidEndPos: %d\r\n", aidBeginPos, aidEndPos, iidBeginPos, iidEndPos);
+        if (aidBeginPos == -1 || aidEndPos == -1 || iidBeginPos == -1 || iidEndPos == -1) {
+            break;
+        }
+
+        int aid = jsonBody.substring(aidBeginPos + 1, aidEndPos).toInt();
+        int iid = jsonBody.substring(iidBeginPos + 1, iidEndPos).toInt();
+        HKLOGDEBUG("jsonBody aid: %d iid: %d\r\n", aid, iid);
+        if (aid == 0 || iid == 0) {
+            break;
+        }
+
+        String ev;
+        String value;
+        if (evPos != -1) {
+            int evBeginPos = jsonBody.indexOf(':', evPos);
+            int evEndPosSeparator = jsonBody.indexOf(',', evPos);
+            int evEndPosEnd = jsonBody.indexOf('}', evPos);
+            int evEndPos;
+            if (evEndPosSeparator == -1 || evEndPosSeparator > evEndPosEnd) {
+                evEndPos = evEndPosEnd;
+            } else {
+                evEndPos = evEndPosSeparator;
+            }
+            if (evBeginPos != -1 && evEndPos != -1) {
+                ev = jsonBody.substring(evBeginPos + 1, evEndPos);
+                ev.trim();
+            }
+        }
+        if (valuePos != -1) {
+            int valueBeginPos = jsonBody.indexOf(':', valuePos);
+            int valueEndPosSeparator = jsonBody.indexOf(',', valuePos);
+            int valueEndPosEnd = jsonBody.indexOf('}', valuePos);
+            int valueEndPos;
+            if (valueEndPosSeparator == -1 || valueEndPosSeparator > valueEndPosEnd) {
+                valueEndPos = valueEndPosEnd;
+            } else {
+                valueEndPos = valueEndPosSeparator;
+            }
+            if (valueBeginPos != -1 && valueEndPos != -1) {
+                value = jsonBody.substring(valueBeginPos + 1, valueEndPos);
+                value.trim();
+            }
+        }
+
+        HKLOGDEBUG("jsonBody ev: %s value: %s\r\n", ev.c_str(), value.c_str());
+        processUpdateCharacteristic(aid, iid, ev, value);
+
+        cursor = end + 1;
     }
 
     send204Response();
 }
 
-HAPStatus HKClient::processUpdateCharacteristic(JsonObject object) {
-    auto aid = object["aid"].as<unsigned int>();
-    auto iid = object["iid"].as<unsigned int>();
-
+HAPStatus HKClient::processUpdateCharacteristic(int aid, int iid, String ev, String value) {
     HKAccessory *accessory = server->hk->getAccessory();
     if (accessory->getId() != aid) {
         HKLOGWARNING("[HKClient::processUpdateCharacteristic] Could not find accessory with id=%d\r\n", aid);
@@ -1016,15 +1076,15 @@ HAPStatus HKClient::processUpdateCharacteristic(JsonObject object) {
     }
 
     HAPStatus status = HAPStatusSuccess;
-    if (object.containsKey("value")) {
-        status = characteristic->setValue(object["value"]);
+    if (value.length() > 0) {
+        status = characteristic->setValue(value);
         if (status != HAPStatusSuccess) {
             return status;
         }
     }
 
-    if (object.containsKey("ev")) {
-        status = characteristic->setEvent(this, object["ev"]);
+    if (ev.length() > 0) {
+        status = characteristic->setEvent(this, ev);
     }
     return status;
 }

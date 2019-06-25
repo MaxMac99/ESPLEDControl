@@ -236,7 +236,7 @@ void HKCharacteristic::serializeToJSON(JSON &json, HKValue *jsonValue, unsigned 
     }
 }
 
-HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
+HAPStatus HKCharacteristic::setValue(const String& jsonValue) {
     if (!(permissions & PermissionPairedWrite)) {
         HKLOGERROR("[HKCharacteristic::setValue] Failed to set characteristic value (id=%d.%d): no write permission\r\n", service->getAccessory()->getId(), id);
         return HAPStatusReadOnly;
@@ -246,10 +246,10 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
     switch (format) {
         case FormatBool: {
             bool result;
-            if (jsonValue.is<bool>()) {
-                result = jsonValue.as<bool>();
-            } else if (jsonValue.is<int>()) {
-                result = jsonValue.as<int>() == 1;
+            if (jsonValue == "false" || jsonValue == "0") {
+                result = false;
+            } else if (jsonValue == "true" || jsonValue == "1") {
+                result = true;
             } else {
                 HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type bool\r\n", service->getAccessory()->getId(), id);
                 return HAPStatusInvalidValue;
@@ -271,13 +271,7 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
         case FormatUInt32:
         case FormatUInt64:
         case FormatInt: {
-            uint64_t result;
-            if (jsonValue.is<uint64_t>() || jsonValue.is<bool>()) {
-                result = jsonValue.as<uint64_t>();
-            } else {
-                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type int\r\n", service->getAccessory()->getId(), id);
-                return HAPStatusInvalidValue;
-            }
+            uint64_t result = jsonValue.toInt();
 
             uint64_t checkMinValue = 0;
             uint64_t checkMaxValue = 0;
@@ -364,13 +358,7 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             break;
         }
         case FormatFloat: {
-            float result;
-            if (jsonValue.is<float>()) {
-                result = jsonValue.as<float>();
-            } else {
-                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type float\r\n", service->getAccessory()->getId(), id);
-                return HAPStatusInvalidValue;
-            }
+            float result = jsonValue.toFloat();
 
             if ((minValue && result < *minValue) || (maxValue && result > *maxValue)) {
                 HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): float is not in range\r\n", service->getAccessory()->getId(), id);
@@ -389,13 +377,7 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
             break;
         }
         case FormatString: {
-            const char *result;
-            if (jsonValue.is<char *>()) {
-                result = jsonValue.as<char *>();
-            } else {
-                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type string\r\n", service->getAccessory()->getId(), id);
-                return HAPStatusInvalidValue;
-            }
+            const char *result = jsonValue.c_str();
 
             int checkMaxLen = maxLen ? *maxLen : 64;
             if (strlen(result) > checkMaxLen) {
@@ -433,12 +415,12 @@ HAPStatus HKCharacteristic::setValue(JsonVariant jsonValue) {
     return HAPStatusSuccess;
 }
 
-HAPStatus HKCharacteristic::setEvent(HKClient *client, JsonVariant jsonValue) {
+HAPStatus HKCharacteristic::setEvent(HKClient *client, String jsonValue) {
     bool events;
-    if (jsonValue.is<bool>()) {
-        events = jsonValue.as<bool>();
-    } else if (jsonValue.is<int>()) {
-        events = jsonValue.as<int>() == 1;
+    if (jsonValue == "false" || jsonValue == "0") {
+        events = false;
+    } else if (jsonValue == "true" || jsonValue == "1") {
+        events = true;
     } else {
         HKLOGERROR("[HKCharacteristic::setEvent] Failed to update (id=%d.%d): Json is not of type bool\r\n", service->getAccessory()->getId(), id);
         return HAPStatusInvalidValue;

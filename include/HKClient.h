@@ -10,7 +10,6 @@
 #include <srp.h>
 #include <ChaChaPoly.h>
 #include <JSON.h>
-#include <ArduinoJson.h>
 #include <ESP8266WebServer.h>
 #include "HKTLV.h"
 #include "HKDefinitions.h"
@@ -72,8 +71,8 @@ private:
     void onIdentify();
     void onGetAccessories();
     void onGetCharacteristics(String id, bool meta, bool perms, bool type, bool ev);
-    void onUpdateCharacteristics(String jsonBody);
-    HAPStatus processUpdateCharacteristic(JsonObject object);
+    void onUpdateCharacteristics(const String &jsonBody);
+    HAPStatus processUpdateCharacteristic(int aid, int iid, String ev, String value);
     void onPairings(const std::vector<byte> &body);
     void onReset();
     void onResource();

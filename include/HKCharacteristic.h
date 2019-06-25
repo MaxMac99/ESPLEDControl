@@ -45,8 +45,8 @@ public:
     void setSetter(const std::function<void(const HKValue)> &setter);
 
     void serializeToJSON(JSON &json, HKValue *jsonValue, unsigned int format = 0xF, HKClient *client = nullptr);
-    HAPStatus setValue(JsonVariant jsonValue);
-    HAPStatus setEvent(HKClient *client, JsonVariant jsonValue);
+    HAPStatus setValue(const String& jsonValue);
+    HAPStatus setEvent(HKClient *client, String jsonValue);
     void addCallbackEvent(HKClient *client);
     void removeCallbackEvent(HKClient *client);
     bool hasCallbackEvent(HKClient *client);
