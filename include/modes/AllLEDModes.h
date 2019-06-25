@@ -11,6 +11,7 @@
 #include "LEDModeRainbowCycle.h"
 #include "LEDModePulse.h"
 #include "LEDModeFire.h"
+#include "LEDModeBouncingBalls.h"
 
 inline std::vector<LEDMode *> generateModes(const std::shared_ptr<CRGBSet>& leds, LEDAccessory *accessory) {
     std::vector<LEDMode *> modes;
@@ -18,6 +19,7 @@ inline std::vector<LEDMode *> generateModes(const std::shared_ptr<CRGBSet>& leds
     modes.push_back(new LEDModeRainbowCycle(leds, accessory));
     modes.push_back(new LEDModePulse(leds, accessory));
     modes.push_back(new LEDModeFire(leds, accessory));
+    modes.push_back(new LEDModeBouncingBalls(leds, accessory));
     return modes;
 }
 
