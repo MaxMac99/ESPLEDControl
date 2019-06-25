@@ -4,7 +4,7 @@
 
 #include "LEDHomeKit.h"
 
-LEDHomeKit::LEDHomeKit(String password, String setupId) : hk(new HomeKit(std::move(password), setupId)), wiFiSetup(nullptr) {
+LEDHomeKit::LEDHomeKit(String password, String setupId) : hk(new HomeKit(std::move(password), std::move(setupId))), wiFiSetup(nullptr) {
 }
 
 LEDHomeKit::~LEDHomeKit() {
@@ -30,4 +30,9 @@ void LEDHomeKit::update() {
 
 void LEDHomeKit::handleSSIDChange(const String &ssid, const String &password) {
     hk->saveSSID(ssid, password);
+}
+
+void LEDHomeKit::handleReset() {
+    HKLOGINFO("[LEDHomeKit::handleReset] handleReset");
+    hk->reset();
 }
