@@ -4,6 +4,8 @@
 
 #ifndef UNIT_TEST
 
+#define HKLOGLEVEL 4
+
 #include <Arduino.h>
 #include "LEDHomeKit.h"
 
