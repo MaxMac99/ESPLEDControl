@@ -95,3 +95,8 @@ HKAccessory *HomeKit::getAccessory() {
 int HomeKit::getConfigNumber() {
     return configNumber;
 }
+
+void HomeKit::reset() {
+    storage->reset();
+    ESP.reset();
+}

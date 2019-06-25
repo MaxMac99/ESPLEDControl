@@ -5,6 +5,8 @@
 #ifndef HAP_SERVER_LEDHOMEKIT_H
 #define HAP_SERVER_LEDHOMEKIT_H
 
+#define RESET_PIN 0
+
 #include <Arduino.h>
 #include "HomeKit.h"
 #include "LEDAccessory.h"
@@ -16,6 +18,7 @@ public:
     ~LEDHomeKit();
     void setup();
     void update();
+    void handleReset();
 private:
     void handleSSIDChange(const String& ssid, const String& password);
 private:

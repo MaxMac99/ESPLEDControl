@@ -49,6 +49,7 @@ public:
     ~HomeKit();
     void setup();
     void update();
+    void reset();
 
     void saveSSID(const String& ssid, const String& wiFiPassword="");
     String getSSID();
