@@ -9,7 +9,7 @@
 
 #define UPDATE_INTERVAL 35
 #define HUE_DELTA 2
-#define STEP_SIZE 1
+#define STEP_SIZE 2
 
 class LEDModeRainbowCycle : public LEDMode {
 public:

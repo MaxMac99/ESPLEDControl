@@ -16,7 +16,7 @@ void LEDModeRainbowCycle::setup() {
 
 void LEDModeRainbowCycle::start() {
     HKLOGINFO("Starting Rainbow Cycle\r\n");
-    leds->fill_rainbow(hue, HUE_DELTA);
+    setBrightness(brightness);
 }
 
 void LEDModeRainbowCycle::update() {
@@ -40,6 +40,5 @@ uint8_t LEDModeRainbowCycle::getBrightness() {
 void LEDModeRainbowCycle::setBrightness(uint8_t brightness) {
     LEDModeRainbowCycle::brightness = brightness;
     uint8_t brightnessConv = LEDAccessory::convertBrightness(brightness, 100);
-    HKLOGINFO("[LEDModeRainbowCycle::setBrightness] converted Brightness %d\r\n", brightnessConv);
     FastLED.setBrightness(brightnessConv);
 }
