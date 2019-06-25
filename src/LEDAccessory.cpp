@@ -11,14 +11,8 @@ LEDAccessory::LEDAccessory() : HKAccessory(HKAccessoryLightbulb), on(false), las
 }
 
 void LEDAccessory::setup() {
-    Serial.println("Setup");
     for (auto mode : generateModes(std::make_shared<CRGBSet>(leds), this)) {
         mode->setupCharacteristics();
-        if (auto name = mode->getCharacteristic(HKCharacteristicName)) {
-            Serial.println("addService " + String(name->getValue().stringValue));
-        } else {
-            Serial.println("addService unknown name");
-        }
         addService(mode);
     }
 }
@@ -40,19 +34,17 @@ void LEDAccessory::run() {
 }
 
 void LEDAccessory::setOn(LEDMode *mode, const HKValue& value) {
-    Serial.println("Set LED On: " + String(value.boolValue));
-
     if (!currentMode) {
         currentMode = mode;
     }
     if (on == value.boolValue && currentMode == mode) {
         return;
     }
+    on = value.boolValue;
     if (on && currentMode != mode && mode != nullptr) {
         currentMode->turnOff();
         currentMode = mode;
     }
-    on = value.boolValue;
     if (on) {
         FastLED.setBrightness(MAX_BRIGHTNESS);
         currentMode->turnOn();
@@ -63,13 +55,14 @@ void LEDAccessory::setOn(LEDMode *mode, const HKValue& value) {
     FastLED.show();
 }
 
-HKValue LEDAccessory::getOn() {
+HKValue LEDAccessory::getOn(LEDMode *mode) {
+    if (mode != currentMode) {
+        return HKValue(FormatBool, false);
+    }
     return HKValue(FormatBool, on);
 }
 
 void LEDAccessory::setBrightness(LEDMode *mode, const HKValue &value) {
-    Serial.println("Set LED Brightness: " + String(value.intValue));
-
     if (value.intValue == 0) {
         setOn(nullptr, HKValue(FormatBool, false));
         return;
@@ -79,36 +72,24 @@ void LEDAccessory::setBrightness(LEDMode *mode, const HKValue &value) {
     }
 }
 
-HKValue LEDAccessory::getBrightness() {
-    if (!currentMode) {
-        return HKValue(FormatInt, 0);
-    }
-    return HKValue(FormatInt, currentMode->getBrightness());
+HKValue LEDAccessory::getBrightness(LEDMode *mode) {
+    return HKValue(FormatInt, mode->getBrightness());
 }
 
 void LEDAccessory::setHue(LEDMode *mode, const HKValue &value) {
-    Serial.println("Set LED Hue: " + String(value.floatValue));
-
     mode->setHue(value.floatValue);
 }
 
-HKValue LEDAccessory::getHue() {
-    if (!currentMode) {
-        return HKValue(FormatFloat, 0);
-    }
-    return HKValue(FormatFloat, currentMode->getHue());
+HKValue LEDAccessory::getHue(LEDMode *mode) {
+    return HKValue(FormatFloat, mode->getHue());
 }
 
 void LEDAccessory::setSaturation(LEDMode *mode, const HKValue &value) {
-    Serial.println("Set LED Saturation: " + String(value.floatValue));
     mode->setSaturation(value.floatValue);
 }
 
-HKValue LEDAccessory::getSaturation() {
-    if (!currentMode) {
-        return HKValue(FormatFloat, 0);
-    }
-    return HKValue(FormatFloat, currentMode->getSaturation());
+HKValue LEDAccessory::getSaturation(LEDMode *mode) {
+    return HKValue(FormatFloat, mode->getSaturation());
 }
 
 uint8_t LEDAccessory::convertBrightness(uint8_t brightness, uint8_t localMax) {

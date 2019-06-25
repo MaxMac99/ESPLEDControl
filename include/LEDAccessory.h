@@ -23,13 +23,13 @@ public:
     void run() override;
 
     void setOn(LEDMode *mode, const HKValue &value);
-    HKValue getOn();
+    HKValue getOn(LEDMode *mode);
     void setBrightness(LEDMode *mode, const HKValue &value);
-    HKValue getBrightness();
+    HKValue getBrightness(LEDMode *mode);
     void setHue(LEDMode *mode, const HKValue &value);
-    HKValue getHue();
+    HKValue getHue(LEDMode *mode);
     void setSaturation(LEDMode *mode, const HKValue &value);
-    HKValue getSaturation();
+    HKValue getSaturation(LEDMode *mode);
     static uint8_t convertBrightness(uint8_t brightness, uint8_t localMax);
 private:
     bool on;
