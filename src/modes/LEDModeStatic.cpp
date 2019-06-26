@@ -4,7 +4,7 @@
 
 #include "modes/LEDModeStatic.h"
 
-LEDModeStatic::LEDModeStatic(std::shared_ptr <CRGBSet> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds), accessory, primary) {
+LEDModeStatic::LEDModeStatic(std::shared_ptr <CRGBSet> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds), accessory, primary), brightness(100), hue(0), saturation(0) {
 }
 
 void LEDModeStatic::setup() {

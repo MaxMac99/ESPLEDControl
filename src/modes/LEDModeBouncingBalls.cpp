@@ -6,7 +6,7 @@
 
 LEDModeBouncingBalls::LEDModeBouncingBalls(std::shared_ptr <CRGBSet> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds),
                                                                                                           accessory,
-                                                                                                          primary), brightness(0), balls(), height(), impactVelocity(), timeSinceLastBounce(), position(), clockTimeSinceLastBounce(), dampening() {
+                                                                                                          primary), brightness(100), balls(), height(), impactVelocity(), timeSinceLastBounce(), position(), clockTimeSinceLastBounce(), dampening() {
     for (int i = 0 ; i < NUM_BALLS; i++) {
         balls[i] = randomColor();
         clockTimeSinceLastBounce[i] = millis();

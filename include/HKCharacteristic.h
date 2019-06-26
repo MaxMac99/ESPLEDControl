@@ -46,7 +46,7 @@ public:
 
     void serializeToJSON(JSON &json, HKValue *jsonValue, unsigned int format = 0xF, HKClient *client = nullptr);
     HAPStatus setValue(const String& jsonValue);
-    HAPStatus setEvent(HKClient *client, String jsonValue);
+    HAPStatus setEvent(HKClient *client, const String& jsonValue);
     void addCallbackEvent(HKClient *client);
     void removeCallbackEvent(HKClient *client);
     bool hasCallbackEvent(HKClient *client);

@@ -5,7 +5,7 @@
 #include "modes/LEDModeRainbowCycle.h"
 
 LEDModeRainbowCycle::LEDModeRainbowCycle(std::shared_ptr<CRGBSet> leds, LEDAccessory *accessory, bool primary)
-        : LEDMode(std::move(leds), accessory, primary), brightness(0), hue(0) {
+        : LEDMode(std::move(leds), accessory, primary), brightness(100), hue(0) {
 
 }
 

@@ -246,12 +246,14 @@ HAPStatus HKCharacteristic::setValue(const String& jsonValue) {
     switch (format) {
         case FormatBool: {
             bool result;
-            if (jsonValue == "false" || jsonValue == "0") {
+            String compare = jsonValue;
+            compare.toLowerCase();
+            if (compare == "false" || compare == "0") {
                 result = false;
-            } else if (jsonValue == "true" || jsonValue == "1") {
+            } else if (compare == "true" || compare == "1") {
                 result = true;
             } else {
-                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type bool\r\n", service->getAccessory()->getId(), id);
+                HKLOGERROR("[HKCharacteristic::setValue] Failed to update (id=%d.%d): Json is not of type bool (%s)\r\n", service->getAccessory()->getId(), id, jsonValue.c_str());
                 return HAPStatusInvalidValue;
             }
 
@@ -415,14 +417,16 @@ HAPStatus HKCharacteristic::setValue(const String& jsonValue) {
     return HAPStatusSuccess;
 }
 
-HAPStatus HKCharacteristic::setEvent(HKClient *client, String jsonValue) {
+HAPStatus HKCharacteristic::setEvent(HKClient *client, const String& jsonValue) {
     bool events;
-    if (jsonValue == "false" || jsonValue == "0") {
+    String compare = jsonValue;
+    compare.toLowerCase();
+    if (compare == "false" || compare == "0") {
         events = false;
-    } else if (jsonValue == "true" || jsonValue == "1") {
+    } else if (compare == "true" || compare == "1") {
         events = true;
     } else {
-        HKLOGERROR("[HKCharacteristic::setEvent] Failed to update (id=%d.%d): Json is not of type bool\r\n", service->getAccessory()->getId(), id);
+        HKLOGERROR("[HKCharacteristic::setEvent] Failed to update (id=%d.%d): Json is not of type bool (%s)\r\n", service->getAccessory()->getId(), id, jsonValue.c_str());
         return HAPStatusInvalidValue;
     }
 

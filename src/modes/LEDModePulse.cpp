@@ -8,7 +8,7 @@
 
 LEDModePulse::LEDModePulse(std::shared_ptr <CRGBSet> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds),
                                                                                                             accessory,
-                                                                                                            primary), brightness(0), hue(0), saturation(0), pulseStep(0) {
+                                                                                                            primary), brightness(255), hue(0), saturation(0), pulseStep(0) {
 
 }
 

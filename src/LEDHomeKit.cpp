@@ -17,6 +17,7 @@ void LEDHomeKit::setup() {
     accessory->addInfoService("MaxLedStrip", "MaxMac Co.", "LEDs", "1234567", "1.0.1");
     hk->setAccessory(accessory);
 
+    HKLOGINFO("[LEDHomeKit::setup] starting WiFi setup name: %s\r\n", hk->getName().c_str());
     wiFiSetup = new WiFiSetup(hk->getSSID(), hk->getWiFiPassword(), hk->getName(), std::bind(&LEDHomeKit::handleSSIDChange, this, std::placeholders::_1, std::placeholders::_2));
     wiFiSetup->start();
 
@@ -29,10 +30,11 @@ void LEDHomeKit::update() {
 }
 
 void LEDHomeKit::handleSSIDChange(const String &ssid, const String &password) {
+    HKLOGINFO("[LEDHomeKit::handleSSIDChange] change SSID to %s\r\n", ssid.c_str());
     hk->saveSSID(ssid, password);
 }
 
 void LEDHomeKit::handleReset() {
-    HKLOGINFO("[LEDHomeKit::handleReset] handleReset");
+    HKLOGINFO("[LEDHomeKit::handleReset] handleReset\r\n");
     hk->reset();
 }

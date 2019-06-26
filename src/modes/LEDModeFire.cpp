@@ -6,7 +6,7 @@
 
 LEDModeFire::LEDModeFire(std::shared_ptr <CRGBSet> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds),
                                                                                                             accessory,
-                                                                                                            primary), brightness(0), heats() {
+                                                                                                            primary), brightness(100), heats() {
     for (unsigned char & heat : heats) {
         heat = 0;
     }
