@@ -4,7 +4,15 @@
 
 #ifndef UNIT_TEST
 
-#define HKLOGLEVEL 4
+#ifndef HKPASSWORD
+#define HKPASSWORD "123-45-678"
+#pragma message ("WARNING: Using default Password 123-45-678")
+#endif
+
+#ifndef HKSETUPID
+#define HKSETUPID "F1HK"
+#pragma message ("WARNING: Using default Setup Id F1HK")
+#endif
 
 #include <Arduino.h>
 #include "LEDHomeKit.h"
@@ -21,7 +29,7 @@ void setup() {
     Serial.begin(115200);
     Serial.println();
 
-    homeKit = new LEDHomeKit("372-64-103", "P1F3");
+    homeKit = new LEDHomeKit(HKPASSWORD, HKSETUPID);
 
     pinMode(D3, INPUT_PULLUP);
     attachInterrupt(D3, handleReset, FALLING);
