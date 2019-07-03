@@ -40,6 +40,7 @@
 #include "HKAccessory.h"
 #include "HKServer.h"
 
+class HKStorage;
 class HKAccessory;
 class HKServer;
 
@@ -62,16 +63,19 @@ public:
     String getAccessoryId();
     int getConfigNumber();
 
+    HKStorage *getStorage();
+    String getPassword();
+
     friend class HKClient;
     friend class HKServer;
 private:
     String generateCustomName();
 private:
+    String password;
     HKStorage *storage;
     HKServer *server;
     HKAccessory *accessory;
 
-    String password;
     String setupId;
     String name;
     int configNumber;

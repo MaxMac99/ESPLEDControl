@@ -420,7 +420,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
     switch (value) {
         case 1: {
             HKLOGINFO("[HKClient::onPairSetup] Setup Step 1/3\r\n");
-            if (HKStorage::isPaired()) {
+            if (server->hk->getStorage()->isPaired()) {
                 HKLOGINFO("[HKClient::onPairSetup] Refuse to pair: Already paired\r\n");
 
                 sendTLVError(2, TLVErrorUnavailable);
@@ -560,7 +560,7 @@ void HKClient::onPairSetup(const std::vector<byte> &body) {
                 break;
             }
 
-            int result = HKStorage::addPairing((char *) deviceId->getValue(), publicKey->getValue(), 1);
+            int result = server->hk->getStorage()->addPairing((char *) deviceId->getValue(), publicKey->getValue(), 1);
             if (result) {
                 HKLOGERROR("[HKClient::onPairSetup] COULD NOT STORE PAIRING\r\n");
             }
@@ -728,7 +728,7 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
                 break;
             }
 
-            Pairing *pairingItem = HKStorage::findPairing((char *) deviceId->getValue());
+            Pairing *pairingItem = server->hk->getStorage()->findPairing((char *) deviceId->getValue());
             if (!pairingItem) {
                 HKLOGINFO("[HKClient::onPairVerify] Device is not paired\r\n");
                 for (auto msg : decryptedMessage) {
@@ -794,7 +794,7 @@ void HKClient::onPairVerify(const std::vector<byte> &body) {
 void HKClient::onIdentify() {
     HKLOGINFO("[HKClient::onIdentify] Identify\r\n");
 
-    if (HKStorage::isPaired()) {
+    if (server->hk->getStorage()->isPaired()) {
         sendJSONErrorResponse(400, HAPStatusInsufficientPrivileges);
         return;
     }
@@ -1151,7 +1151,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
             }
 
             char *deviceIdentifier = strndup((const char *) deviceId->getValue(), deviceId->getSize());
-            Pairing *comparePairing = HKStorage::findPairing(deviceIdentifier);
+            Pairing *comparePairing = server->hk->getStorage()->findPairing(deviceIdentifier);
             if (comparePairing) {
                 if (devicePublicKey->getSize() != 32 || memcmp(devicePublicKey->getValue(), comparePairing->deviceKey, 32) != 0) {
                     HKLOGWARNING("[HKClient::onPairings] Failed to add pairing: pairing public key differs from given one\r\n");
@@ -1162,7 +1162,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
                 }
                 delete comparePairing;
 
-                if (HKStorage::updatePairing(deviceIdentifier, *devicePermission->getValue())) {
+                if (server->hk->getStorage()->updatePairing(deviceIdentifier, *devicePermission->getValue())) {
                     HKLOGWARNING("[HKClient::onPairings] Failed to add pairing: storage error\r\n");
                     free(deviceIdentifier);
                     sendTLVError(2, TLVErrorUnknown);
@@ -1171,7 +1171,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
 
                 HKLOGINFO("[HKClient::onPairings] Updated pairing with id=%s\r\n", deviceIdentifier);
             } else {
-                int r = HKStorage::addPairing(deviceIdentifier, devicePublicKey->getValue(), *devicePermission->getValue());
+                int r = server->hk->getStorage()->addPairing(deviceIdentifier, devicePublicKey->getValue(), *devicePermission->getValue());
                 if (r == -2) {
                     HKLOGWARNING("[HKClient::onPairings] Failed to add pairing: max peers\r\n");
                     free(deviceIdentifier);
@@ -1213,11 +1213,11 @@ void HKClient::onPairings(const std::vector<byte> &body) {
             }
 
             char *deviceIdentifier = strndup((const char *) deviceId->getValue(), deviceId->getSize());
-            Pairing *comparePairing = HKStorage::findPairing(deviceIdentifier);
+            Pairing *comparePairing = server->hk->getStorage()->findPairing(deviceIdentifier);
             if (comparePairing) {
                 bool isAdmin = comparePairing->permissions & PairingPermissionAdmin;
 
-                int result = HKStorage::removePairing(deviceIdentifier);
+                int result = server->hk->getStorage()->removePairing(deviceIdentifier);
                 if (result) {
                     delete comparePairing;
                     free(deviceIdentifier);
@@ -1228,7 +1228,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
 
                 HKLOGINFO("[HKClient::onPairings] Removed pairing with id=%s\r\n", deviceIdentifier);
 #if HKLOGLEVEL <= 1
-                for (auto pPairing : HKStorage::getPairings()) {
+                for (auto pPairing : server->hk->getStorage()->getPairings()) {
                     HKLOGINFO("[HKStorage] Pairing id=%i deviceId=%36s permissions=%i\r\n", pPairing->id, pPairing->deviceId, pPairing->permissions);
                 }
 #endif
@@ -1240,7 +1240,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
                 }
 
                 if (isAdmin) {
-                    if (!HKStorage::hasPairedAdmin()) {
+                    if (!server->hk->getStorage()->hasPairedAdmin()) {
                         HKLOGINFO("[HKClient::onPairings] Last admin pairing was removed, enabling pair setup\r\n");
                         server->setupMDNS();
                     }
@@ -1266,7 +1266,7 @@ void HKClient::onPairings(const std::vector<byte> &body) {
             };
 
             bool first = true;
-            std::vector<Pairing *> pairings = HKStorage::getPairings();
+            std::vector<Pairing *> pairings = server->hk->getStorage()->getPairings();
             for (auto pairingItem : pairings) {
                 if (!first) {
                     response.push_back(new HKTLV(TLVTypeSeparator, nullptr, 0));

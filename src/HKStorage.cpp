@@ -5,12 +5,12 @@
 #include "HKStorage.h"
 #include "HomeKit.h"
 
-HKStorage::HKStorage() : data() {
+HKStorage::HKStorage(HomeKit *hk) : hk(hk), data() {
     load();
 }
 
 void HKStorage::load() {
-    char magic[sizeof(magic1)];
+    char magic[COMPARE_SIZE];
     memset(magic, 0, sizeof(magic));
 
     EEPROM.begin(4096);
@@ -19,7 +19,7 @@ void HKStorage::load() {
     }
     EEPROM.end();
 
-    if (strncmp(magic, magic1, sizeof(magic1)) != 0) {
+    if (strncmp(magic, hk->getPassword().c_str(), COMPARE_SIZE) != 0) {
         reset();
     }
 
@@ -35,9 +35,10 @@ void HKStorage::save() {
 }
 
 void HKStorage::reset() {
+    HKLOGINFO("[HKStorage::reset] Reset\r\n");
     EEPROM.begin(4096);
-    for (unsigned int i = 0; i < sizeof(magic1); i++) {
-        EEPROM.write(MAGIC_ADDR + i, magic1[i]);
+    for (unsigned int i = 0; i < COMPARE_SIZE; i++) {
+        EEPROM.write(MAGIC_ADDR + i, hk->getPassword().c_str()[i]);
     }
     for (unsigned int i = ACCESSORY_ID_ADDR; i < 4096; i++) {
         EEPROM.write(i, 0);
@@ -152,7 +153,7 @@ bool HKStorage::isPaired() {
     EEPROM.begin(4096);
     for (int i = 0; i < MAX_PAIRINGS; i++) {
         EEPROM.get(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
-        if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
+        if (strncmp(pairingData.magic, hk->getPassword().c_str(), COMPARE_SIZE) != 0) {
             continue;
         }
         EEPROM.end();
@@ -175,7 +176,7 @@ int HKStorage::addPairing(const char *deviceId, const byte *deviceKey, byte perm
     }
 
     PairingData pairingData{};
-    strncpy(pairingData.magic, magic1, sizeof(magic1));
+    strncpy(pairingData.magic, hk->getPassword().c_str(), COMPARE_SIZE);
     pairingData.permissions = permission;
     strncpy(pairingData.deviceId, deviceId, sizeof(pairingData.deviceId));
     memcpy(pairingData.devicePublicKey, deviceKey, sizeof(pairingData.devicePublicKey));
@@ -192,7 +193,7 @@ int HKStorage::updatePairing(const String &deviceId, byte permission) {
     EEPROM.begin(4096);
     for (int i = 0; i < MAX_PAIRINGS; i++) {
         EEPROM.get(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
-        if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
+        if (strncmp(pairingData.magic, hk->getPassword().c_str(), COMPARE_SIZE) != 0) {
             continue;
         }
 
@@ -212,7 +213,7 @@ Pairing *HKStorage::findPairing(const char *deviceId) {
     EEPROM.begin(4096);
     for (int i = 0; i < MAX_PAIRINGS; i++) {
         EEPROM.get(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
-        if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
+        if (strncmp(pairingData.magic, hk->getPassword().c_str(), COMPARE_SIZE) != 0) {
             continue;
         }
 
@@ -236,7 +237,7 @@ int HKStorage::removePairing(const String &deviceId) {
     EEPROM.begin(4096);
     for (int i = 0; i < MAX_PAIRINGS; i++) {
         EEPROM.get(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
-        if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
+        if (strncmp(pairingData.magic, hk->getPassword().c_str(), COMPARE_SIZE) != 0) {
             continue;
         }
 
@@ -256,7 +257,7 @@ bool HKStorage::hasPairedAdmin() {
     EEPROM.begin(4096);
     for (int i = 0; i < MAX_PAIRINGS; i++) {
         EEPROM.get(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
-        if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
+        if (strncmp(pairingData.magic, hk->getPassword().c_str(), COMPARE_SIZE) != 0) {
             continue;
         }
 
@@ -275,7 +276,7 @@ std::vector<Pairing *> HKStorage::getPairings() {
     EEPROM.begin(4096);
     for (int i = 0; i < MAX_PAIRINGS; i++) {
         EEPROM.get(ACCESSORY_ID_ADDR + sizeof(StorageData) + sizeof(pairingData)*i, pairingData);
-        if (strncmp(pairingData.magic, magic1, sizeof(magic1)) != 0) {
+        if (strncmp(pairingData.magic, hk->getPassword().c_str(), COMPARE_SIZE) != 0) {
             continue;
         }
 
