@@ -14,71 +14,63 @@ WiFiSetup::WiFiSetup(String ssid, String password, String hostname,
         changeCallback(std::move(callback)), connected(false), lastUpdate(0) {
 }
 
-bool WiFiSetup::start() {
+void WiFiSetup::start(bool untilConnected) {
     WiFi.hostname(hostname);
     WiFi.persistent(false);
     WiFi.mode(WIFI_STA);
 
     if (ssid != "") {
         if (connectWifi(ssid, password) == WL_CONNECTED) {
-            // Connection restored
-            return true;
+            return;
         }
     }
 
-    return startConfigPortal();
+    startConfigPortal(hostname);
+
+    while(untilConnected && !connected) {
+        if (millis() - lastUpdate >= REFETCH_INTERVAL) {
+            lastUpdate = millis();
+            if (connectWifi(ssid, password) == WL_CONNECTED) {
+                connected = true;
+            }
+        }
+        handleConfigPortal();
+        yield();
+    }
 }
 
 void WiFiSetup::update() {
-    if (millis() - lastUpdate >= REFETCH_INTERVAL) {
+    if (millis() - lastUpdate >= REFETCH_INTERVAL && connected) {
         lastUpdate = millis();
         if (WiFi.status() == WL_CONNECTED) {
             return;
         }
-
-        // Not connected
         if (connectWifi(ssid, password) == WL_CONNECTED) {
-            // Connection restored
             return;
         }
 
-        startConfigPortal();
-    }
-}
-
-bool WiFiSetup::startConfigPortal() {
-    WiFi.mode(WIFI_AP);
-
-    setupConfigPortal(hostname);
-
-    connected = false;
-    while(true) {
-        dns->processNextRequest();
-        server->handleClient();
-
-        if (connected) {
-            connected = false;
-            if (WiFi.status() == WL_CONNECTED) {
-                WiFi.mode(WIFI_STA);
-                break;
+        startConfigPortal(hostname);
+    } else if (!connected) {
+        if (millis() - lastUpdate >= REFETCH_INTERVAL) {
+            lastUpdate = millis();
+            if (connectWifi(ssid, password) == WL_CONNECTED) {
+                connected = true;
             }
-
         }
-        yield();
+        if (server.get() != nullptr) {
+            handleConfigPortal();
+        }
     }
-
-    server.reset();
-    dns.reset();
-    return WiFi.status() == WL_CONNECTED;
 }
 
-void WiFiSetup::setupConfigPortal(const String& apName) {
+void WiFiSetup::startConfigPortal(const String& apName) {
+    WiFi.mode(WIFI_AP_STA);
+    connected = false;
+
     dns.reset(new DNSServer());
     server.reset(new ESP8266WebServer(80));
 
     WiFi.softAP(apName);
-
-    // Serial.println("[WiFiSetup] Available as " + apName);
 
     const byte DNS_PORT = 53;
     dns->setErrorReplyCode(DNSReplyCode::NoError);
@@ -90,12 +82,49 @@ void WiFiSetup::setupConfigPortal(const String& apName) {
     server->begin();
 }
 
+void WiFiSetup::handleConfigPortal() {
+    dns->processNextRequest();
+    server->handleClient();
+
+    if (connected) {
+        if (WiFi.status() == WL_CONNECTED) {
+            WiFi.softAPdisconnect(true);
+            WiFi.mode(WIFI_STA);
+
+            server.reset();
+            dns.reset();
+        }
+    }
+}
+
+uint8_t WiFiSetup::connectWifi(const String& ssid, const String& password) {
+    wl_status_t status = WiFi.status();
+    if (status == WL_CONNECTED) {
+        return WL_CONNECTED;
+    }
+
+    if (ssid != "") {
+        WiFi.begin(ssid, password);
+    } else {
+        if (WiFi.SSID()) {
+            ETS_UART_INTR_DISABLE();
+            wifi_station_disconnect();
+            ETS_UART_INTR_ENABLE();
+
+            WiFi.begin();
+        }
+    }
+
+    uint8_t result = WiFi.waitForConnectResult();
+    return result;
+}
+
 void WiFiSetup::handleRoot() {
-    String page = FPSTR(HTTP_HEAD);
+    String page = FPSTR(HTML_HEAD);
     page.replace("{v}", "Set up LED Controller");
-    page += FPSTR(HTTP_STYLE);
-    page += FPSTR(HTTP_SCRIPT);
-    page += FPSTR(HTTP_HEAD_END);
+    page += FPSTR(HTML_STYLE);
+    page += FPSTR(HTML_SCRIPT);
+    page += FPSTR(HTML_HEAD_END);
 
     auto n = static_cast<int>(WiFi.scanNetworks());
     if (n == 0) {
@@ -122,7 +151,7 @@ void WiFiSetup::handleRoot() {
             }
         }
 
-        page += FPSTR(HTTP_SSIDS_START);
+        page += FPSTR(HTML_SSIDS_START);
         for (int i = 0; i < n; i++) {
             if (indices[i] == -1) {
                 continue;
@@ -137,7 +166,7 @@ void WiFiSetup::handleRoot() {
                 quality = 2 * (rssi + 100);
             }
 
-            String httpItem = FPSTR(HTTP_SSID_ITEM);
+            String httpItem = FPSTR(HTML_SSID_ITEM);
             httpItem.replace("{v}", WiFi.SSID(item));
             httpItem.replace("{r}", String(quality) + " %");
             if (WiFi.encryptionType(item) != ENC_TYPE_NONE) {
@@ -150,9 +179,9 @@ void WiFiSetup::handleRoot() {
     }
 
     page += FPSTR(HTTP_SSIDS_END);
-    page += FPSTR(HTTP_FORM);
+    page += FPSTR(HTML_FORM);
 
-    page += FPSTR(HTTP_END);
+    page += FPSTR(HTML_END);
 
     server->sendHeader("Content-Length", String(page.length()));
     server->send(200, "text/html", page);
@@ -207,35 +236,11 @@ void WiFiSetup::handleNotFound() {
 bool WiFiSetup::captivePortal() {
     if (!isIp(server->hostHeader()) ) {
         server->sendHeader("Location", String("http://") + toStringIp(server->client().localIP()), true);
-        server->send (302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
+        server->send(302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
         server->client().stop(); // Stop is needed because we sent no content length
         return true;
     }
     return false;
-}
-
-uint8_t WiFiSetup::connectWifi(const String& ssid, const String& password) {
-    if (WiFi.status() == WL_CONNECTED) {
-        return WL_CONNECTED;
-    }
-
-    if (ssid != "") {
-        WiFi.begin(ssid, password);
-    } else {
-        if (WiFi.SSID()) {
-            ETS_UART_INTR_DISABLE();
-            wifi_station_disconnect();
-            ETS_UART_INTR_ENABLE();
-
-            WiFi.begin();
-        }
-    }
-
-    uint8_t result = WiFi.waitForConnectResult();
-    /*if (result == WL_CONNECTED) {
-        Serial.printf("[WiFiSetup] Successfully connected to \"%s\"\r\n", ssid.c_str());
-    }*/
-    return result;
 }
 
 bool WiFiSetup::isIp(const String& str) {

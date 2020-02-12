@@ -13,14 +13,14 @@
 #include <ESP8266WebServer.h>
 #include <DNSServer.h>
 
-const char HTTP_HEAD[] PROGMEM = "<!DOCTYPE html>\n"
+const char HTML_HEAD[] PROGMEM = "<!DOCTYPE html>\n"
                                  "<html lang=\"en\">\n"
                                  "<head>\n"
                                  "\t<meta charset=\"UTF-8\">\n"
                                  "\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
                                  "\t<meta http-equiv=\"X-UA-Compatible\" content=\"ie=edge\">\n"
                                  "\t<title>{v}</title>\n";
-const char HTTP_STYLE[] PROGMEM = "\t<style type=\"text/css\">\n"
+const char HTML_STYLE[] PROGMEM = "\t<style type=\"text/css\">\n"
                                   "\t\thtml,\n"
                                   "\t\tbody {\n"
                                   "\t\t\tfont-family: sans-serif;\n"
@@ -181,7 +181,7 @@ const char HTTP_STYLE[] PROGMEM = "\t<style type=\"text/css\">\n"
                                   "\t\t\t100% { transform: translateX(-50%) translateY(-50%) rotate(360deg); }\n"
                                   "\t\t}\n"
                                   "\t</style>\n";
-const char HTTP_SCRIPT[] PROGMEM = "\t<script>\n"
+const char HTML_SCRIPT[] PROGMEM = "\t<script>\n"
                                    "\t\tfunction otherNetwork() {\n"
                                    "\t\t\tdocument.getElementById(\"new\").classList.toggle(\"hide\");\n"
                                    "\t\t\tdocument.getElementById(\"ssids\").classList.toggle(\"hide\");\n"
@@ -243,7 +243,7 @@ const char HTTP_SCRIPT[] PROGMEM = "\t<script>\n"
                                    "\t\t\t}\n"
                                    "\t\t}\n"
                                    "\t</script>";
-const char HTTP_HEAD_END[] PROGMEM = "<body>\n"
+const char HTML_HEAD_END[] PROGMEM = "<body>\n"
                                      "\t<div class=\"bar\">\n"
                                      "\t\tWLAN LED STRIPE\n"
                                      "\t</div>\n"
@@ -251,9 +251,9 @@ const char HTTP_HEAD_END[] PROGMEM = "<body>\n"
                                      "\t\t<div class=\"loader\"></div>\n"
                                      "\t</div>\n"
                                      "\t<div class=\"main\">\n";
-const char HTTP_SSIDS_START[] PROGMEM = "\t\t<div id=\"ssids\" class=\"ssids\">\n"
+const char HTML_SSIDS_START[] PROGMEM = "\t\t<div id=\"ssids\" class=\"ssids\">\n"
                                         "\t\t\t<p>Netzwerk wählen ...</p>\n";
-const char HTTP_SSID_ITEM[] PROGMEM = "\t\t\t<a class=\"ssid\" onclick=\"selectSSID(this);\">\n"
+const char HTML_SSID_ITEM[] PROGMEM = "\t\t\t<a class=\"ssid\" onclick=\"selectSSID(this);\">\n"
                                       "\t\t\t\t<p>\n"
                                       "\t\t\t\t\t<span class=\"lock\">{i}</span>&nbsp;\n"
                                       "\t\t\t\t\t<span class=\"name\">{v}</span>\n"
@@ -265,7 +265,7 @@ const char HTTP_SSIDS_END[] PROGMEM = "\t\t\t<br>\n"
                                       "\t\t\t\t<p>Anderes ...</p>\n"
                                       "\t\t\t</a>\n"
                                       "\t\t</div>\n";
-const char HTTP_FORM[] PROGMEM = "\t\t<div id=\"new\" class=\"new hide\">\n"
+const char HTML_FORM[] PROGMEM = "\t\t<div id=\"new\" class=\"new hide\">\n"
                                  "\t\t\t<form name=\"wifi-form\" method=\"get\" action=\"wifisave\">\n"
                                  "\t\t\t\t<p>Daten eingeben ...</p>\n"
                                  "\t\t\t\t<div class=\"input\">\n"
@@ -284,7 +284,7 @@ const char HTTP_FORM[] PROGMEM = "\t\t<div id=\"new\" class=\"new hide\">\n"
                                  "\t\t\t\t</a>\n"
                                  "\t\t\t</form>\n"
                                  "\t\t</div>\n";
-const char HTTP_END[] PROGMEM = "\t</div>\n"
+const char HTML_END[] PROGMEM = "\t</div>\n"
                                 "</body>\n"
                                 "</html>";
 
@@ -294,17 +294,13 @@ public:
     WiFiSetup();
     WiFiSetup(String ssid, String password, String hostname,
               std::function<void(String, String)> callback);
-    bool start();
+    void start(bool untilConnected=true);
     void update();
 
     void setSsid(const String &ssid);
-
     void setPassword(const String &password);
-
     void setHostname(const String &hostname);
-
     void setChangeCallback(const std::function<void(String, String)> &changeCallback);
-
 private:
     String ssid;
     String password;
@@ -316,12 +312,12 @@ private:
     std::unique_ptr<ESP8266WebServer> server;
     std::unique_ptr<DNSServer> dns;
 private:
-    bool startConfigPortal();
-    void setupConfigPortal(const String& apName);
+    void startConfigPortal(const String& apName);
+    void handleConfigPortal();
+    static uint8_t connectWifi(const String& ssid, const String& password);
     void handleRoot();
     void handleWifiSave();
     void handleNotFound();
-    static uint8_t connectWifi(const String& ssid, const String& password);
     bool captivePortal();
     static bool isIp(const String& str);
     static String toStringIp(const IPAddress& ip);
