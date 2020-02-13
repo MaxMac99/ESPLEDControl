@@ -8,6 +8,7 @@
 #include <Arduino.h>
 
 #define REFETCH_INTERVAL 10000
+#define RETRY_INVERTVAL 30000
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>

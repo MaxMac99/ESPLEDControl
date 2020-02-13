@@ -28,7 +28,7 @@ void WiFiSetup::start(bool untilConnected) {
     startConfigPortal(hostname);
 
     while(untilConnected && !connected) {
-        if (millis() - lastUpdate >= REFETCH_INTERVAL) {
+        if (millis() - lastUpdate >= RETRY_INVERTVAL) {
             lastUpdate = millis();
             if (connectWifi(ssid, password) == WL_CONNECTED) {
                 connected = true;
@@ -51,7 +51,7 @@ void WiFiSetup::update() {
 
         startConfigPortal(hostname);
     } else if (!connected) {
-        if (millis() - lastUpdate >= REFETCH_INTERVAL) {
+        if (millis() - lastUpdate >= RETRY_INVERTVAL) {
             lastUpdate = millis();
             if (connectWifi(ssid, password) == WL_CONNECTED) {
                 connected = true;
