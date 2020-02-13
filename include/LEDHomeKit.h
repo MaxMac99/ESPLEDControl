@@ -8,7 +8,7 @@
 #define RESET_PIN 0
 
 #include <Arduino.h>
-#include "HomeKit.h"
+#include <HomeKit.h>
 #include "LEDAccessory.h"
 #include <WiFiSetup.h>
 

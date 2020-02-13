@@ -6,7 +6,7 @@
 #define LED_HAP_ESP8266_LEDACCESSORY_H
 
 #include <FastLED.h>
-#include "HKAccessory.h"
+#include <HKAccessory.h>
 #include "LEDMode.h"
 
 #define LED_PIN 4
