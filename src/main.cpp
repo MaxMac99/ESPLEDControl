@@ -19,7 +19,7 @@
 
 LEDHomeKit *homeKit;
 
-void handleReset() {
+void ICACHE_RAM_ATTR handleReset() {
     if (homeKit) {
         homeKit->handleReset();
     }
