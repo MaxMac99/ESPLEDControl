@@ -166,7 +166,7 @@ enum HKCharacteristicType {
     HKCharacteristicVideoRotation = 0x3C,
     HKCharacteristicVideoValAttr = 0x3D,
 
-#pragma - The following is only default by the device after iOS 9
+ // pragma - The following is only default by the device after iOS 9
 
     HKCharacteristicFirmwareRevision = 0x52,
     HKCharacteristicHardwareRevision = 0x53,

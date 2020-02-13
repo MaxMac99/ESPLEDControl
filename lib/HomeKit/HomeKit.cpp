@@ -5,7 +5,7 @@
 #include "HomeKit.h"
 #include <srp.h>
 
-HomeKit::HomeKit(String password, String setupId, String name) : storage(new HKStorage(this)), server(new HKServer(this)), accessory(nullptr), password(std::move(password)), setupId(std::move(setupId)), name(std::move(name)), configNumber(1) {
+HomeKit::HomeKit(String password, String setupId, String name) : storage(new HKStorage()), server(new HKServer(this)), accessory(nullptr), password(std::move(password)), setupId(std::move(setupId)), name(std::move(name)), configNumber(1) {
 }
 
 HomeKit::~HomeKit() {
@@ -39,7 +39,6 @@ void HomeKit::update() {
 void HomeKit::saveSSID(const String& ssid, const String& wiFiPassword) {
     storage->setSSID(ssid);
     storage->setPassword(wiFiPassword);
-    storage->save();
 }
 
 String HomeKit::getSSID() {

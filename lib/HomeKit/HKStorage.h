@@ -8,23 +8,21 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <Ed25519.h>
-#include "HomeKit.h"
+
+#include "HKDebug.h"
+#include "HKDefinitions.h"
 
 #ifndef STORAGE_BASE_ADDR
-#define STORAGE_BASE_ADDR 0x0
+#define STORAGE_BASE_ADDR   0x0
 #endif
-
-#define MAGIC_OFFSET           0
-#define ACCESSORY_ID_OFFSET    4
-
-#define MAGIC_ADDR           (STORAGE_BASE_ADDR + MAGIC_OFFSET)
-#define ACCESSORY_ID_ADDR    (STORAGE_BASE_ADDR + ACCESSORY_ID_OFFSET)
 
 #define MAX_PAIRINGS 16
 
 #define ACCESSORY_ID_SIZE   17
 
 #define COMPARE_SIZE 3
+
+#define COMPARING String("MAX").c_str()
 
 struct Pairing {
     int id;
@@ -38,14 +36,17 @@ struct KeyPair {
     byte publicKey[32];
 };
 
-class HomeKit;
+#define SSID_ADDR           STORAGE_BASE_ADDR
+#define WIFI_PASSWORD_ADDR  (SSID_ADDR + 32)
+#define ACCESSORY_ID_ADDR   (WIFI_PASSWORD_ADDR + 64)
+#define ACCESSORY_KEY_ADDR  (ACCESSORY_ID_ADDR + 6)
+#define PAIRINGS_ADDR       (ACCESSORY_KEY_ADDR + sizeof(KeyPair))
 
 class HKStorage {
 public:
-    HKStorage(HomeKit *hk);
+    HKStorage();
     void reset();
     void resetPairings();
-    void save();
     void setSSID(const String &ssid);
     String getSSID();
     void setPassword(const String &password);
@@ -62,24 +63,17 @@ public:
     int removePairing(const String &deviceId);
 private:
     int findEmptyBlock();
-    void load();
     String generateAccessoryId();
     KeyPair generateAccessoryKey();
+    static void writeString(uint16_t address, String data, uint16_t maxLength=0);
+    static String readString(uint16_t address, uint16_t maxLength=0);
 private:
-    HomeKit *hk;
-    struct StorageData {
-        char ssid[33];
-        char password[65];
-        char accessoryId[ACCESSORY_ID_SIZE];
-        KeyPair accessoryKey;
-    };
     struct PairingData {
-        char magic[COMPARE_SIZE];
+        char comparing[COMPARE_SIZE];
         unsigned char permissions;
         char deviceId[36];
         byte devicePublicKey[32];
     };
-    StorageData data;
 };
 
 
