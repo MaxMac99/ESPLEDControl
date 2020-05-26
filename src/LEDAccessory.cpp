@@ -34,23 +34,27 @@ void LEDAccessory::run() {
 }
 
 void LEDAccessory::setOn(LEDMode *mode, const HKValue& value) {
+    HKLOGINFO("[LEDAccessory::setOn] mode: %s, value: %d\r\n", mode->getCharacteristic(HKCharacteristicName)->getValue().stringValue, value.boolValue);
     if (!currentMode) {
         currentMode = mode;
     }
+    HKLOGINFO("[LEDAccessory::setOn] currentMode: %s\r\n", currentMode->getCharacteristic(HKCharacteristicName)->getValue().stringValue);
+    HKLOGINFO("[LEDAccessory::setOn] on: %d\r\n", on);
     if (on == value.boolValue && currentMode == mode) {
         return;
     }
-    on = value.boolValue;
-    if (on && currentMode != mode && mode != nullptr) {
+    if (value.boolValue && currentMode != mode && mode != nullptr) {
         currentMode->turnOff();
         currentMode = mode;
     }
-    if (on) {
+    if (value.boolValue) {
         FastLED.setBrightness(MAX_BRIGHTNESS);
         currentMode->turnOn();
-    } else {
+        on = true;
+    } else if (currentMode == mode) {
         currentMode->turnOff();
         FastLED.setBrightness(0);
+        on = false;
     }
     FastLED.show();
 }
