@@ -2,18 +2,28 @@
 // Created by Max Vissing on 2019-06-24.
 //
 
+#ifdef MODE_FIRE
+
 #ifndef LED_HAP_ESP8266_LEDMODEFIRE_H
 #define LED_HAP_ESP8266_LEDMODEFIRE_H
 
 #include "../LEDMode.h"
 
-#define UPDATE_INTERVAL 30
-#define COOLING 45
-#define SPARKING 170
+#ifndef FIRE_UPDATE_INTERVAL
+#define FIRE_UPDATE_INTERVAL 30
+#endif
+
+#ifndef FIRE_COOLING
+#define FIRE_COOLING 45
+#endif
+
+#ifndef FIRE_SPARKING
+#define FIRE_SPARKING 170
+#endif
 
 class LEDModeFire : public LEDMode {
 public:
-    explicit LEDModeFire(std::shared_ptr<CRGBSet> leds, LEDAccessory *accessory, bool primary=false);
+    explicit LEDModeFire(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary=false);
     void setup() override;
     void start() override;
     void update() override;
@@ -22,10 +32,15 @@ public:
     uint8_t getBrightness() override;
     void setBrightness(uint8_t brightness) override;
     void fire();
+    void handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param);
 private:
     uint8_t brightness;
+    uint8_t currentBrightness;
     byte heats[NUM_LEDS];
+    bool isRunning;
 };
 
 
 #endif //LED_HAP_ESP8266_LEDMODEFIRE_H
+
+#endif

@@ -2,69 +2,61 @@
 // Created by Max Vissing on 2019-06-24.
 //
 
+#ifdef MODE_BOUNCING_BALLS
+
 #include "modes/LEDModeBouncingBalls.h"
 
-LEDModeBouncingBalls::LEDModeBouncingBalls(std::shared_ptr <CRGBSet> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds),
-                                                                                                          accessory,
-                                                                                                          primary), brightness(100), balls(), height(), impactVelocity(), timeSinceLastBounce(), position(), clockTimeSinceLastBounce(), dampening() {
-    for (int i = 0 ; i < NUM_BALLS; i++) {
-        balls[i] = randomColor();
+LEDModeBouncingBalls::LEDModeBouncingBalls(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds), accessory, primary), brightness(100), hue(0), saturation(0), currentTarget(0, 0, 100), height(), impactVelocity(), timeSinceLastBounce(), position(), clockTimeSinceLastBounce(), dampening(), isRunning(false) {
+    for (int i = 0 ; i < BOUNCING_BALLS_NUM_BALLS; i++) {
         clockTimeSinceLastBounce[i] = millis();
-        height[i] = START_HEIGHT;
+        height[i] = BOUNCING_BALLS_START_HEIGHT;
         position[i] = 0;
-        impactVelocity[i] = IMPACT_VELOCITY_START;
+        impactVelocity[i] = BOUNCING_BALLS_IMPACT_VELOCITY_START;
         timeSinceLastBounce[i] = 0;
-        dampening[i] = 0.90 - float(i) / pow(NUM_BALLS, 2);
+        dampening[i] = 0.90 - float(i) / pow(BOUNCING_BALLS_NUM_BALLS, 2);
     }
-}
-
-CRGB LEDModeBouncingBalls::randomColor() {
-    int color = random(1, 10);
-    switch (color) {
-        case 1:
-            return CRGB::Red;
-        case 2:
-            return CRGB::Green;
-        case 3:
-            return CRGB::Blue;
-        case 4:
-            return CRGB::Yellow;
-        case 5:
-            return CRGB::Tomato;
-        case 6:
-            return CRGB::RoyalBlue;
-        case 7:
-            return CRGB::MediumSpringGreen;
-        case 8:
-            return CRGB::LightCyan;
-        case 9:
-            return CRGB::Gold;
-        case 10:
-            return CRGB::Orange;
-    }
-    return CRGB(0, 0, 0);
 }
 
 void LEDModeBouncingBalls::setup() {
     addNameCharacteristic("Balls");
     addBrightnessCharacteristic();
+    addHueCharacteristic();
+    addSaturationCharacteristic();
+}
+
+void LEDModeBouncingBalls::handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param) {
+    currentTarget = HSIColor::linearBlend<HueBlendShortestDistance>(startColor, endColor, param.progress);
+    if (!isRunning) {
+        strip->setPixelColor(index, currentTarget);
+        if (!strip->isAnimating() && index == NUM_LEDS - 1) {
+            currentTarget.intensity = brightness;
+            isRunning = true;
+        }
+    }
 }
 
 void LEDModeBouncingBalls::start() {
     HKLOGINFO("Starting Bouncing Balls\r\n");
-    setBrightness(brightness);
+    isRunning = false;
+    strip->clearEndColorTo(HSIColor(0, 0, 0));
+    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 void LEDModeBouncingBalls::update() {
-    bounceBalls();
+    if (isRunning) {
+        bounceBalls();
+    }
 }
 
 void LEDModeBouncingBalls::stop() {
     HKLOGINFO("Stopping Bouncing Balls\r\n");
+    isRunning = false;
+    strip->clearEndColorTo(HSIColor(0, 0, 0));
+    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 unsigned long LEDModeBouncingBalls::getUpdateInterval() const {
-    return UPDATE_INTERVAL;
+    return BOUNCING_BALLS_UPDATE_INTERVAL;
 }
 
 uint8_t LEDModeBouncingBalls::getBrightness() {
@@ -73,14 +65,34 @@ uint8_t LEDModeBouncingBalls::getBrightness() {
 
 void LEDModeBouncingBalls::setBrightness(uint8_t brightness) {
     LEDModeBouncingBalls::brightness = brightness;
-    uint8_t brightnessConv = LEDAccessory::convertBrightness(brightness, 100);
-    FastLED.setBrightness(brightnessConv);
+    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+}
+
+float LEDModeBouncingBalls::getHue() {
+    return hue;
+}
+
+void LEDModeBouncingBalls::setHue(float hue) {
+    LEDModeBouncingBalls::hue = hue;
+    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+}
+
+float LEDModeBouncingBalls::getSaturation() {
+    return saturation;
+}
+
+void LEDModeBouncingBalls::setSaturation(float saturation) {
+    LEDModeBouncingBalls::saturation = saturation;
+    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 void LEDModeBouncingBalls::bounceBalls() {
-    for (int i = 0; i < NUM_BALLS; i++) {
+    for (int i = 0; i < BOUNCING_BALLS_NUM_BALLS; i++) {
         timeSinceLastBounce[i] =  millis() - clockTimeSinceLastBounce[i];
-        height[i] = 0.5 * GRAVITY * pow(timeSinceLastBounce[i]/1000 , 2.0 ) + impactVelocity[i] * timeSinceLastBounce[i]/1000;
+        height[i] = 0.5 * BOUNCING_BALLS_GRAVITY * pow(timeSinceLastBounce[i]/1000 , 2.0 ) + impactVelocity[i] * timeSinceLastBounce[i]/1000;
 
         if (height[i] < 0) {
             height[i] = 0;
@@ -88,17 +100,17 @@ void LEDModeBouncingBalls::bounceBalls() {
             clockTimeSinceLastBounce[i] = millis();
 
             if (impactVelocity[i] < 0.01) {
-                impactVelocity[i] = IMPACT_VELOCITY_START;
-                balls[i] = randomColor();
+                impactVelocity[i] = BOUNCING_BALLS_IMPACT_VELOCITY_START;
             }
         }
-        position[i] = round(height[i] * (NUM_LEDS - 1) / START_HEIGHT);
+        position[i] = round(height[i] * (NUM_LEDS - 1) / BOUNCING_BALLS_START_HEIGHT);
     }
 
-    for (int i = 0 ; i < NUM_BALLS; i++) {
-        (*leds)[position[i]] = balls[i];
+    strip->clearTo(HSIColor(0, 0, 0));
+    for (int i = 0 ; i < BOUNCING_BALLS_NUM_BALLS; i++) {
+        strip->setPixelColor(position[i], currentTarget);
     }
-    FastLED.show();
-
-    leds->fill_solid(CRGB(0, 0, 0));
+    strip->show();
 }
+
+#endif

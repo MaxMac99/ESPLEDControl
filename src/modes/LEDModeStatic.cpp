@@ -2,9 +2,11 @@
 // Created by Max Vissing on 2019-06-23.
 //
 
+#ifdef MODE_STATIC
+
 #include "modes/LEDModeStatic.h"
 
-LEDModeStatic::LEDModeStatic(std::shared_ptr <CRGBSet> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds), accessory, primary), brightness(100), hue(0), saturation(0) {
+LEDModeStatic::LEDModeStatic(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds), accessory, primary), brightness(100), saturation(0), hue(0) {
 }
 
 void LEDModeStatic::setup() {
@@ -14,17 +16,23 @@ void LEDModeStatic::setup() {
     addSaturationCharacteristic();
 }
 
+void LEDModeStatic::handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param) {
+    strip->setPixelColor(index, HSIColor::linearBlend<HueBlendShortestDistance>(startColor, endColor, param.progress));
+}
+
 void LEDModeStatic::start() {
     HKLOGINFO("Starting Static\r\n");
-    setColor();
+    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    strip->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 void LEDModeStatic::update() {
-
 }
 
 void LEDModeStatic::stop() {
     HKLOGINFO("Stopping Static\r\n");
+    strip->clearEndColorTo(HSIColor(hue, saturation, 0));
+    strip->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 uint8_t LEDModeStatic::getBrightness() {
@@ -33,7 +41,8 @@ uint8_t LEDModeStatic::getBrightness() {
 
 void LEDModeStatic::setBrightness(uint8_t brightness) {
     LEDModeStatic::brightness = brightness;
-    setColor();
+    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    strip->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 float LEDModeStatic::getHue() {
@@ -42,7 +51,8 @@ float LEDModeStatic::getHue() {
 
 void LEDModeStatic::setHue(float hue) {
     LEDModeStatic::hue = hue;
-    setColor();
+    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    strip->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 float LEDModeStatic::getSaturation() {
@@ -51,16 +61,8 @@ float LEDModeStatic::getSaturation() {
 
 void LEDModeStatic::setSaturation(float saturation) {
     LEDModeStatic::saturation = saturation;
-    setColor();
+    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    strip->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
-void LEDModeStatic::setColor() {
-    uint8_t hueConv = float(hue) / float(360.0 / 255.0) + 0.5;
-    HKLOGINFO("[LEDModeStatic::setColor] hue=%f convHue=%d\r\n", hue, hueConv);
-    uint8_t saturationConv = saturation * 2.55 + 0.5;
-    HKLOGINFO("[LEDModeStatic::setColor] hue=%f convHue=%d\r\n", saturation, saturationConv);
-    uint8_t brightnessConv = brightness * 2.55 + 0.5;
-    HKLOGINFO("[LEDModeStatic::setColor] hue=%d convHue=%d\r\n", brightness, brightnessConv);
-    leds->fill_solid(CHSV(hueConv, saturationConv, brightnessConv));
-    FastLED.show();
-}
+#endif

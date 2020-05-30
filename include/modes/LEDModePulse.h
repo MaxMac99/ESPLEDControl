@@ -2,17 +2,25 @@
 // Created by Max Vissing on 2019-06-24.
 //
 
+#ifdef MODE_PULSE
+
 #ifndef LED_HAP_ESP8266_LEDMODEPULSE_H
 #define LED_HAP_ESP8266_LEDMODEPULSE_H
 
 #include "../LEDMode.h"
+#include "ledstrip/Curves.h"
 
-#define UPDATE_INTERVAL 35
-#define STEP_SIZE 2
+#ifndef PULSE_UPDATE_INTERVAL
+#define PULSE_UPDATE_INTERVAL 35
+#endif
+
+#ifndef PULSE_STEP_SIZE
+#define PULSE_STEP_SIZE 2
+#endif
 
 class LEDModePulse : public LEDMode {
 public:
-    explicit LEDModePulse(std::shared_ptr <CRGBSet> leds, LEDAccessory *accessory, bool primary=false);
+    explicit LEDModePulse(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary=false);
 
     virtual void setup();
 
@@ -36,14 +44,17 @@ public:
 
     virtual void setSaturation(float saturation);
 
-private:
-    void setColor();
+    void handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param);
 private:
     uint8_t brightness;
-    uint8_t hue;
+    uint16_t hue;
     uint8_t saturation;
+    HSIColor currentTarget;
     uint8_t pulseStep;
+    bool isRunning;
 };
 
 
 #endif //LED_HAP_ESP8266_LEDMODEPULSE_H
+
+#endif

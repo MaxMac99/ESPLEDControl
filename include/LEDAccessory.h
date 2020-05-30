@@ -5,13 +5,9 @@
 #ifndef LED_HAP_ESP8266_LEDACCESSORY_H
 #define LED_HAP_ESP8266_LEDACCESSORY_H
 
-#include <FastLED.h>
 #include <HKAccessory.h>
 #include "LEDMode.h"
-
-#define LED_PIN 4
-#define NUM_LEDS 144
-#define MAX_BRIGHTNESS 200 // Max 255
+#include "FastLEDStrip.h"
 
 class LEDMode;
 
@@ -30,11 +26,10 @@ public:
     HKValue getHue(LEDMode *mode);
     void setSaturation(LEDMode *mode, const HKValue &value);
     HKValue getSaturation(LEDMode *mode);
-    static uint8_t convertBrightness(uint8_t brightness, uint8_t localMax);
 private:
     bool on;
     unsigned int lastUpdate;
-    CRGBArray<NUM_LEDS> leds;
+    std::shared_ptr<LEDStrip> strip;
     LEDMode *currentMode;
 };
 

@@ -2,6 +2,8 @@
 // Created by Max Vissing on 2019-06-23.
 //
 
+#ifdef MODE_STATIC
+
 #ifndef LED_HAP_ESP8266_LEDMODESTATIC_H
 #define LED_HAP_ESP8266_LEDMODESTATIC_H
 
@@ -11,7 +13,7 @@ class LEDMode;
 
 class LEDModeStatic : public LEDMode {
 public:
-    explicit LEDModeStatic(std::shared_ptr<CRGBSet> leds, LEDAccessory *accessory, bool primary=false);
+    explicit LEDModeStatic(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary=false);
 
     virtual void setup() override;
 
@@ -32,8 +34,8 @@ public:
     virtual float getSaturation() override;
 
     virtual void setSaturation(float saturation) override;
-private:
-    void setColor();
+
+    void handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param);
 private:
     uint8_t brightness;
     float saturation;
@@ -42,3 +44,5 @@ private:
 
 
 #endif //LED_HAP_ESP8266_LEDMODESTATIC_H
+
+#endif
