@@ -36,6 +36,7 @@ public:
 private:
     uint8_t brightness;
     uint8_t currentBrightness;
+    uint8_t startBrightness;
     byte heats[NUM_LEDS];
     bool isRunning;
 };

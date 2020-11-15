@@ -5,7 +5,11 @@
 #include "LEDAccessory.h"
 #include "modes/AllLEDModes.h"
 
-LEDAccessory::LEDAccessory() : HKAccessory(HKAccessoryLightbulb), on(false), lastUpdate(0), strip(std::make_shared<FastLEDStrip>()), currentMode(nullptr) {
+#ifdef FAST_LED
+LEDAccessory::LEDAccessory(const String &accessoryName, const String &modelName, const String &firmwareRevision) : HKAccessory(accessoryName, modelName, firmwareRevision, HKAccessoryLightbulb), on(false), lastUpdate(0), strip(std::make_shared<FastLEDStrip>()), currentMode(nullptr) {
+#else
+LEDAccessory::LEDAccessory(const String &accessoryName, const String &modelName, const String &firmwareRevision) : HKAccessory(accessoryName, modelName, firmwareRevision, HKAccessoryLightbulb), on(false), lastUpdate(0), strip(std::make_shared<NeoPixelBusStrip>()), currentMode(nullptr) {
+#endif
     strip->begin();
 }
 
@@ -70,6 +74,8 @@ void LEDAccessory::setBrightness(LEDMode *mode, const HKValue &value) {
     if (value.intValue == 0) {
         setOn(nullptr, HKValue(FormatBool, false));
         return;
+    } else if (!on) {
+        setOn(mode, HKValue(FormatBool, true));
     }
     if (on) {
         mode->setBrightness(value.intValue);

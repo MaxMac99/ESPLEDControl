@@ -6,7 +6,7 @@
 
 #include "modes/LEDModeBouncingBalls.h"
 
-LEDModeBouncingBalls::LEDModeBouncingBalls(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds), accessory, primary), brightness(100), hue(0), saturation(0), currentTarget(0, 0, 100), height(), impactVelocity(), timeSinceLastBounce(), position(), clockTimeSinceLastBounce(), dampening(), isRunning(false) {
+LEDModeBouncingBalls::LEDModeBouncingBalls(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, "Balls", bool primary) : LEDMode(std::move(leds), accessory, primary), brightness(100), hue(0), saturation(0), currentTarget(0, 0, 100), height(), impactVelocity(), timeSinceLastBounce(), position(), clockTimeSinceLastBounce(), dampening(), isRunning(false) {
     for (int i = 0 ; i < BOUNCING_BALLS_NUM_BALLS; i++) {
         clockTimeSinceLastBounce[i] = millis();
         height[i] = BOUNCING_BALLS_START_HEIGHT;
@@ -18,7 +18,6 @@ LEDModeBouncingBalls::LEDModeBouncingBalls(std::shared_ptr<LEDStrip> leds, LEDAc
 }
 
 void LEDModeBouncingBalls::setup() {
-    addNameCharacteristic("Balls");
     addBrightnessCharacteristic();
     addHueCharacteristic();
     addSaturationCharacteristic();

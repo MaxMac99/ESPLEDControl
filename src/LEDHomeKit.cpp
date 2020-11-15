@@ -4,7 +4,7 @@
 
 #include "LEDHomeKit.h"
 
-LEDHomeKit::LEDHomeKit(String password, String setupId) : hk(new HomeKit(std::move(password), std::move(setupId))), wiFiSetup(nullptr) {
+LEDHomeKit::LEDHomeKit() : hk(new ESPHomeKit()), wiFiSetup(nullptr) {
 }
 
 LEDHomeKit::~LEDHomeKit() {
@@ -13,8 +13,7 @@ LEDHomeKit::~LEDHomeKit() {
 }
 
 void LEDHomeKit::setup() {
-    auto accessory = new LEDAccessory();
-    accessory->addInfoService("MaxLedStrip", "MaxMac Co.", "LEDs", "1234567", "1.0.1");
+    auto accessory = new LEDAccessory("Max LED Strip", "LEDs", "2.0");
     hk->setAccessory(accessory);
 
     HKLOGINFO("[LEDHomeKit::setup] starting WiFi setup name: %s\r\n", hk->getName().c_str());

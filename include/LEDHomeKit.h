@@ -5,16 +5,14 @@
 #ifndef HAP_SERVER_LEDHOMEKIT_H
 #define HAP_SERVER_LEDHOMEKIT_H
 
-#define RESET_PIN 0
-
 #include <Arduino.h>
-#include <HomeKit.h>
+#include <ESPHomeKit.h>
 #include "LEDAccessory.h"
 #include <WiFiSetup.h>
 
 class LEDHomeKit {
 public:
-    explicit LEDHomeKit(String password, String setupId);
+    explicit LEDHomeKit();
     ~LEDHomeKit();
     void setup();
     void update();
@@ -22,7 +20,7 @@ public:
 private:
     void handleSSIDChange(const String& ssid, const String& password);
 private:
-    HomeKit *hk;
+    ESPHomeKit *hk;
     WiFiSetup *wiFiSetup;
 };
 

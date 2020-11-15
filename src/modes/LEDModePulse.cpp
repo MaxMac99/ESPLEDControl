@@ -6,11 +6,10 @@
 
 #include "modes/LEDModePulse.h"
 
-LEDModePulse::LEDModePulse(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds), accessory, primary), brightness(100), hue(0), saturation(0), currentTarget(0, 0, 100), pulseStep(0), isRunning(false) {
+LEDModePulse::LEDModePulse(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds), accessory, "Pulse", primary), brightness(100), hue(0), saturation(0), currentTarget(0, 0, 100), pulseStep(0), isRunning(false) {
 }
 
 void LEDModePulse::setup() {
-    addNameCharacteristic("Pulse");
     addBrightnessCharacteristic();
     addHueCharacteristic();
     addSaturationCharacteristic();

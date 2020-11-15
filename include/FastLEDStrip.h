@@ -9,6 +9,8 @@
  * 
  */
 
+#ifdef FAST_LED
+
 #ifndef LED_LIGHTS_FASTLEDSTRIP_H
 #define LED_LIGHTS_FASTLEDSTRIP_H
 
@@ -31,5 +33,7 @@ public:
 private:
     CRGBArray<NUM_LEDS> leds;
 };
+
+#endif
 
 #endif

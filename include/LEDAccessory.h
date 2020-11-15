@@ -7,13 +7,15 @@
 
 #include <HKAccessory.h>
 #include "LEDMode.h"
+
 #include "FastLEDStrip.h"
+#include "NeoPixelBusStrip.h"
 
 class LEDMode;
 
 class LEDAccessory : public HKAccessory {
 public:
-    LEDAccessory();
+    LEDAccessory(const String &accessoryName, const String &modelName, const String &firmwareRevision);
 
     void setup() override;
     void run() override;

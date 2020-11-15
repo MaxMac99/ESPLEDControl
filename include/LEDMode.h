@@ -22,7 +22,7 @@ class LEDAccessory;
 
 class LEDMode : public HKService {
 public:
-    explicit LEDMode(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, bool primary=false);
+    explicit LEDMode(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, String name, bool primary=false);
     virtual ~LEDMode() = default;
     virtual void setup() = 0;
     virtual void start() = 0;

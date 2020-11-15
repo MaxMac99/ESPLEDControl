@@ -6,11 +6,10 @@
 
 #include "modes/LEDModeStatic.h"
 
-LEDModeStatic::LEDModeStatic(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary) : LEDMode(std::move(leds), accessory, primary), brightness(100), saturation(0), hue(0) {
+LEDModeStatic::LEDModeStatic(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, bool primary) : LEDMode(std::move(strip), accessory, "Static", primary), brightness(100), saturation(0), hue(0) {
 }
 
 void LEDModeStatic::setup() {
-    addNameCharacteristic("Static");
     addBrightnessCharacteristic();
     addHueCharacteristic();
     addSaturationCharacteristic();

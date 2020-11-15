@@ -12,7 +12,7 @@
 #ifndef LED_LIGHTS_LEDSTRIP_H
 #define LED_LIGHTS_LEDSTRIP_H
 
-#include <HomeKit.h>
+#include <ESPHomeKit.h>
 #include "PixelAnimator.h"
 #include "HSIColor.h"
 

@@ -6,12 +6,11 @@
 
 #include "modes/LEDModeRainbowCycle.h"
 
-LEDModeRainbowCycle::LEDModeRainbowCycle(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, bool primary) : LEDMode(std::move(strip), accessory, primary), brightness(100), currentBrightness(100), hue(0), hueAnimationEnabled(false) {
+LEDModeRainbowCycle::LEDModeRainbowCycle(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, bool primary) : LEDMode(std::move(strip), accessory, "Rainbow", primary), brightness(100), currentBrightness(100), hue(0), hueAnimationEnabled(false) {
 
 }
 
 void LEDModeRainbowCycle::setup() {
-    addNameCharacteristic("Rainbow");
     addBrightnessCharacteristic();
 }
 
@@ -72,6 +71,7 @@ uint8_t LEDModeRainbowCycle::getBrightness() {
 }
 
 void LEDModeRainbowCycle::setBrightness(uint8_t brightness) {
+    HKLOGDEBUG("[LEDModeRainbowCycle::setBrightness] set brightness to %u\r\n", brightness);
     LEDModeRainbowCycle::brightness = brightness;
     for (int i = 0; i < NUM_LEDS; i++) {
         strip->setEndColorPixel(i, HSIColor(getWheelColor(i, hue), 100, brightness));

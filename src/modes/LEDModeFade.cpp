@@ -13,12 +13,11 @@
 
 #include "modes/LEDModeFade.h"
 
-LEDModeFade::LEDModeFade(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, bool primary) : LEDMode(std::move(strip), accessory, primary), brightness(100), currentBrightness(100), hue(0), hueAnimationEnabled(false) {
+LEDModeFade::LEDModeFade(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, bool primary) : LEDMode(std::move(strip), accessory, "Fade", primary), brightness(100), currentBrightness(100), hue(0), hueAnimationEnabled(false) {
 
 }
 
 void LEDModeFade::setup() {
-    addNameCharacteristic("Fade");
     addBrightnessCharacteristic();
 }
 

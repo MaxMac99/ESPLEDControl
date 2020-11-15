@@ -9,6 +9,8 @@
  * 
  */
 
+#ifdef FAST_LED
+
 #include "FastLEDStrip.h"
 
 FastLEDStrip::FastLEDStrip() : LEDStrip() {
@@ -46,3 +48,5 @@ void FastLEDStrip::begin() {
     FastLED.setBrightness(MAX_BRIGHTNESS);
     // FastLED.setCorrection();
 }
+
+#endif
