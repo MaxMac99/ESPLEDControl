@@ -25,6 +25,10 @@ void setup() {
     #ifdef RESET_EEPROM
     homeKit->handleReset();
     #endif
+    #ifdef RESET_PAIRINGS
+    // HKStorage::resetPairings();
+    homeKit->resetPairings();
+    #endif
 
     #ifdef RESET_PIN
     pinMode(RESET_PIN, INPUT_PULLUP);

@@ -17,6 +17,7 @@ public:
     void setup();
     void update();
     void handleReset();
+    void resetPairings();
 private:
     void handleSSIDChange(const String& ssid, const String& password);
 private:

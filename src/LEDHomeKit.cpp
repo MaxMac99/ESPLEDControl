@@ -17,7 +17,7 @@ void LEDHomeKit::setup() {
     hk->setAccessory(accessory);
 
     HKLOGINFO("[LEDHomeKit::setup] starting WiFi setup name: %s\r\n", hk->getName().c_str());
-    wiFiSetup = new WiFiSetup(hk->getSSID(), hk->getWiFiPassword(), hk->getName(), std::bind(&LEDHomeKit::handleSSIDChange, this, std::placeholders::_1, std::placeholders::_2));
+    wiFiSetup = new WiFiSetup(HKStorage::getSSID(), HKStorage::getWiFiPassword(), hk->getName(), std::bind(&LEDHomeKit::handleSSIDChange, this, std::placeholders::_1, std::placeholders::_2));
     wiFiSetup->start();
 
     hk->setup();
@@ -30,10 +30,16 @@ void LEDHomeKit::update() {
 
 void LEDHomeKit::handleSSIDChange(const String &ssid, const String &password) {
     HKLOGINFO("[LEDHomeKit::handleSSIDChange] change SSID to %s\r\n", ssid.c_str());
-    hk->saveSSID(ssid, password);
+    HKStorage::saveSSID(ssid);
+    HKStorage::saveWiFiPassword(password);
 }
 
 void LEDHomeKit::handleReset() {
     HKLOGINFO("[LEDHomeKit::handleReset] handleReset\r\n");
     hk->reset();
+}
+
+void LEDHomeKit::resetPairings() {
+    HKLOGINFO("[LEDHomeKit::resetPairings] resetPairings\r\n");
+    hk->resetPairings();
 }
