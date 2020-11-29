@@ -36,5 +36,4 @@ void LEDHomeKit::handleSSIDChange(const String &ssid, const String &password) {
 void LEDHomeKit::handleReset() {
     HKLOGINFO("[LEDHomeKit::handleReset] handleReset\r\n");
     hk->reset();
-    ESP.reset();
 }
