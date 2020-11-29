@@ -5,11 +5,13 @@
 #include "LEDAccessory.h"
 #include "modes/AllLEDModes.h"
 
+LEDAccessory::LEDAccessory(const String &accessoryName, const String &modelName, const String &firmwareRevision) : HKAccessory(accessoryName, modelName, firmwareRevision, HKAccessoryLightbulb), on(false), lastUpdate(0)
 #ifdef FAST_LED
-LEDAccessory::LEDAccessory(const String &accessoryName, const String &modelName, const String &firmwareRevision) : HKAccessory(accessoryName, modelName, firmwareRevision, HKAccessoryLightbulb), on(false), lastUpdate(0), strip(std::make_shared<FastLEDStrip>()), currentMode(nullptr) {
+, strip(std::make_shared<FastLEDStrip>()), currentMode(nullptr)
 #else
-LEDAccessory::LEDAccessory(const String &accessoryName, const String &modelName, const String &firmwareRevision) : HKAccessory(accessoryName, modelName, firmwareRevision, HKAccessoryLightbulb), on(false), lastUpdate(0), strip(std::make_shared<NeoPixelBusStrip>()), currentMode(nullptr) {
+, strip(std::make_shared<NeoPixelBusStrip>()), currentMode(nullptr)
 #endif
+{
     strip->begin();
 }
 
