@@ -88,7 +88,10 @@ LEDStrip *LEDHomeKit::getStrip() {
 void LEDHomeKit::serveNotFound() {
     String req = server->uri();
     String body = server->arg(0);
-    HKLOGDEBUG("[LEDHomeKit::serveNotFound] url: %s body: %s\r\n", req.c_str(), body.c_str());
+    #if HKLOGLEVEL == 0
+    IPAddress remoteIP = server->client().remoteIP();
+    HKLOGDEBUG("[LEDHomeKit::serveNotFound] ip: %s url: %s body: %s\r\n", remoteIP.toString().c_str(), req.c_str(), body.c_str());
+    #endif
     if (req.startsWith("/api")) {
         if (server->method() == HTTP_GET) {
             if (serveList(req, body)) return;
