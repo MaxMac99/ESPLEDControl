@@ -32,6 +32,16 @@ public:
     LEDStrip *getStrip();
 private:
     void handleSSIDChange(const String& ssid, const String& password);
+    #ifdef ALEXA_SUPPORT
+    void serveNotFound();
+    bool serveList(String url, String body);
+    bool serveControl(String url, String body);
+    void serveDescription();
+    void respondToAlexaSearch();
+    String byteToHex(uint8_t num);
+    String makeMD5(String text);
+    String deviceToJSON(LEDMode *mode, uint8_t id);
+    #endif
 private:
     static LEDHomeKit *_instance;
     LEDHomeKit();
@@ -49,6 +59,11 @@ private:
     ESPHomeKit *hk;
     WiFiSetup *wiFiSetup;
     LEDStrip *strip;
+
+    #ifdef ALEXA_SUPPORT
+    ESP8266WebServer *server;
+    WiFiUDP alexaUdp;
+    #endif
 };
 
 

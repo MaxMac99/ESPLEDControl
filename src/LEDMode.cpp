@@ -49,3 +49,21 @@ void LEDMode::addSaturationCharacteristic() {
     saturationChar->setGetter(std::bind(&LEDAccessory::getSaturation, accessory, this));
     addCharacteristic(saturationChar);
 }
+
+void LEDMode::setBrightness(uint8_t brightness) {
+    #ifdef ALEXA_SUPPORT
+    getCharacteristic(HKCharacteristicBrightness)->notify(HKValue(FormatInt, brightness));
+    #endif
+}
+
+void LEDMode::setHue(float hue) {
+    #ifdef ALEXA_SUPPORT
+    getCharacteristic(HKCharacteristicHue)->notify(HKValue(FormatFloat, hue));
+    #endif
+}
+
+void LEDMode::setSaturation(float saturation) {
+    #ifdef ALEXA_SUPPORT
+    getCharacteristic(HKCharacteristicSaturation)->notify(HKValue(FormatFloat, saturation));
+    #endif
+}
