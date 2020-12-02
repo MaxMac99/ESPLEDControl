@@ -8,6 +8,9 @@
 #include <Arduino.h>
 #include "LEDAccessory.h"
 #include "ledstrip/LEDStrip.h"
+#include "LEDHomeKit.h"
+
+#define LEDMODE_CLASS_ID HKSERVICE_CLASS_ID + 1
 
 class LEDAccessory;
 
@@ -18,12 +21,12 @@ enum Characteristic : uint8_t {
     BrightnessColor
 };
 
-class LEDAccessory;
-
 class LEDMode : public HKService {
 public:
-    explicit LEDMode(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, String name, bool primary=false);
+    explicit LEDMode(LEDAccessory *accessory, String name, bool primary=false);
     virtual ~LEDMode() = default;
+    virtual uint getClassId() { return LEDMODE_CLASS_ID; };
+
     virtual void setup() = 0;
     virtual void start() = 0;
     virtual void update() = 0;
@@ -47,7 +50,6 @@ private:
     friend LEDAccessory;
 protected:
     LEDAccessory *accessory;
-    std::shared_ptr<LEDStrip> strip;
 };
 
 #endif //LED_LIGHTS_LEDMODE_H

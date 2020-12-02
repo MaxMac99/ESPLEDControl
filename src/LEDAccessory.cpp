@@ -5,18 +5,11 @@
 #include "LEDAccessory.h"
 #include "modes/AllLEDModes.h"
 
-LEDAccessory::LEDAccessory(const String &accessoryName, const String &modelName, const String &firmwareRevision) : HKAccessory(accessoryName, modelName, firmwareRevision, HKAccessoryLightbulb), on(false), lastUpdate(0)
-#ifdef FAST_LED
-, strip(std::make_shared<FastLEDStrip>()), currentMode(nullptr)
-#else
-, strip(std::make_shared<NeoPixelBusStrip>()), currentMode(nullptr)
-#endif
-{
-    strip->begin();
+LEDAccessory::LEDAccessory(const String &accessoryName, const String &modelName, const String &firmwareRevision) : HKAccessory(accessoryName, modelName, firmwareRevision, HKAccessoryLightbulb), on(false), lastUpdate(0), currentMode(nullptr) {
 }
 
 void LEDAccessory::setup() {
-    for (auto mode : generateModes(strip, this)) {
+    for (auto mode : generateModes(this)) {
         mode->setupCharacteristics();
         addService(mode);
     }
@@ -25,13 +18,13 @@ void LEDAccessory::setup() {
 void LEDAccessory::run() {
     unsigned long now = millis();
     if (!on && now - lastUpdate > 10000) {
-        strip->show();
+        LEDHomeKit::shared()->getStrip()->show();
         lastUpdate = now;
         return;
     }
     if (!currentMode) {
-        if (strip->animate()) {
-            strip->show();
+        if (LEDHomeKit::shared()->getStrip()->animate()) {
+            LEDHomeKit::shared()->getStrip()->show();
         }
         return;
     }
@@ -39,8 +32,8 @@ void LEDAccessory::run() {
         currentMode->update();
         lastUpdate = now;
     }
-    if (strip->animate()) {
-        strip->show();
+    if (LEDHomeKit::shared()->getStrip()->animate()) {
+        LEDHomeKit::shared()->getStrip()->show();
     }
 }
 
@@ -62,7 +55,7 @@ void LEDAccessory::setOn(LEDMode *mode, const HKValue& value) {
         currentMode->turnOff();
         on = false;
     }
-    strip->show();
+    LEDHomeKit::shared()->getStrip()->show();
 }
 
 HKValue LEDAccessory::getOn(LEDMode *mode) {

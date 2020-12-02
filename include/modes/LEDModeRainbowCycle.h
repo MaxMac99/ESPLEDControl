@@ -23,7 +23,7 @@
 
 class LEDModeRainbowCycle : public LEDMode {
 public:
-    explicit LEDModeRainbowCycle(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary=false);
+    explicit LEDModeRainbowCycle(LEDAccessory *accessory, bool primary=false);
     void setup() override;
     void start() override;
     void update() override;

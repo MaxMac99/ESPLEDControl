@@ -7,12 +7,10 @@
 #include <Arduino.h>
 #include "LEDHomeKit.h"
 
-LEDHomeKit *homeKit;
-
 #ifdef RESET_PIN
 void ICACHE_RAM_ATTR handleReset() {
-    if (homeKit) {
-        homeKit->handleReset();
+    if (LEDHomeKit::shared()) {
+        LEDHomeKit::shared()->handleReset();
     }
 }
 #endif
@@ -21,13 +19,11 @@ void setup() {
     Serial.begin(115200);
     Serial.println();
 
-    homeKit = new LEDHomeKit();
     #ifdef RESET_EEPROM
-    homeKit->handleReset();
+    LEDHomeKit::shared()->handleReset();
     #endif
     #ifdef RESET_PAIRINGS
-    // HKStorage::resetPairings();
-    homeKit->resetPairings();
+    LEDHomeKit::shared()->resetPairings();
     #endif
 
     #ifdef RESET_PIN
@@ -35,11 +31,11 @@ void setup() {
     attachInterrupt(RESET_PIN, handleReset, FALLING);
     #endif
 
-    homeKit->setup();
+    LEDHomeKit::shared()->setup();
 }
 
 void loop() {
-    homeKit->update();
+    LEDHomeKit::shared()->update();
 }
 
 #endif

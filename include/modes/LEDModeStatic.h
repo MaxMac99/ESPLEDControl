@@ -13,28 +13,17 @@ class LEDMode;
 
 class LEDModeStatic : public LEDMode {
 public:
-    explicit LEDModeStatic(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary=false);
-
+    explicit LEDModeStatic(LEDAccessory *accessory, bool primary=false);
     virtual void setup() override;
-
     virtual void start() override;
-
     virtual void update() override;
-
     virtual void stop() override;
-
     virtual uint8_t getBrightness() override;
-
     virtual void setBrightness(uint8_t brightness) override;
-
     virtual float getHue() override;
-
     virtual void setHue(float hue) override;
-
     virtual float getSaturation() override;
-
     virtual void setSaturation(float saturation) override;
-
     void handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param);
 private:
     uint8_t brightness;

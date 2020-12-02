@@ -8,18 +8,19 @@
 #include <HKAccessory.h>
 #include "LEDMode.h"
 
-#include "FastLEDStrip.h"
-#include "NeoPixelBusStrip.h"
+#define LEDACCESSORY_CLASS_ID HKACCESSORY_CLASS_ID + 1
 
 class LEDMode;
 
 class LEDAccessory : public HKAccessory {
 public:
     LEDAccessory(const String &accessoryName, const String &modelName, const String &firmwareRevision);
+    virtual uint getClassId() { return LEDACCESSORY_CLASS_ID; };
 
     void setup() override;
     void run() override;
 
+    LEDMode *getModeForId(uint32_t id);
     void setOn(LEDMode *mode, const HKValue &value);
     HKValue getOn(LEDMode *mode);
     void setBrightness(LEDMode *mode, const HKValue &value);
@@ -31,7 +32,6 @@ public:
 private:
     bool on;
     unsigned int lastUpdate;
-    std::shared_ptr<LEDStrip> strip;
     LEDMode *currentMode;
 };
 

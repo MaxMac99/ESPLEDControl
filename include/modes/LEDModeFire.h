@@ -23,7 +23,7 @@
 
 class LEDModeFire : public LEDMode {
 public:
-    explicit LEDModeFire(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary=false);
+    explicit LEDModeFire(LEDAccessory *accessory, bool primary=false);
     void setup() override;
     void start() override;
     void update() override;

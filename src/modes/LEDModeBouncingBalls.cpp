@@ -6,7 +6,7 @@
 
 #include "modes/LEDModeBouncingBalls.h"
 
-LEDModeBouncingBalls::LEDModeBouncingBalls(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, "Balls", bool primary) : LEDMode(std::move(leds), accessory, primary), brightness(100), hue(0), saturation(0), currentTarget(0, 0, 100), height(), impactVelocity(), timeSinceLastBounce(), position(), clockTimeSinceLastBounce(), dampening(), isRunning(false) {
+LEDModeBouncingBalls::LEDModeBouncingBalls(LEDAccessory *accessory, "Balls", bool primary) : LEDMode(accessory, primary), brightness(100), hue(0), saturation(0), currentTarget(0, 0, 100), height(), impactVelocity(), timeSinceLastBounce(), position(), clockTimeSinceLastBounce(), dampening(), isRunning(false) {
     for (int i = 0 ; i < BOUNCING_BALLS_NUM_BALLS; i++) {
         clockTimeSinceLastBounce[i] = millis();
         height[i] = BOUNCING_BALLS_START_HEIGHT;
@@ -26,8 +26,8 @@ void LEDModeBouncingBalls::setup() {
 void LEDModeBouncingBalls::handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param) {
     currentTarget = HSIColor::linearBlend<HueBlendShortestDistance>(startColor, endColor, param.progress);
     if (!isRunning) {
-        strip->setPixelColor(index, currentTarget);
-        if (!strip->isAnimating() && index == NUM_LEDS - 1) {
+        LEDHomeKit::shared()->getStrip()->setPixelColor(index, currentTarget);
+        if (!LEDHomeKit::shared()->getStrip()->isAnimating() && index == NUM_LEDS - 1) {
             currentTarget.intensity = brightness;
             isRunning = true;
         }
@@ -37,8 +37,8 @@ void LEDModeBouncingBalls::handleAnimation(const uint16_t index, const HSIColor 
 void LEDModeBouncingBalls::start() {
     HKLOGINFO("Starting Bouncing Balls\r\n");
     isRunning = false;
-    strip->clearEndColorTo(HSIColor(0, 0, 0));
-    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(0, 0, 0));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 void LEDModeBouncingBalls::update() {
@@ -50,8 +50,8 @@ void LEDModeBouncingBalls::update() {
 void LEDModeBouncingBalls::stop() {
     HKLOGINFO("Stopping Bouncing Balls\r\n");
     isRunning = false;
-    strip->clearEndColorTo(HSIColor(0, 0, 0));
-    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(0, 0, 0));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 unsigned long LEDModeBouncingBalls::getUpdateInterval() const {
@@ -64,8 +64,8 @@ uint8_t LEDModeBouncingBalls::getBrightness() {
 
 void LEDModeBouncingBalls::setBrightness(uint8_t brightness) {
     LEDModeBouncingBalls::brightness = brightness;
-    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
-    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 float LEDModeBouncingBalls::getHue() {
@@ -73,9 +73,10 @@ float LEDModeBouncingBalls::getHue() {
 }
 
 void LEDModeBouncingBalls::setHue(float hue) {
+    LEDMode::setHue(hue);
     LEDModeBouncingBalls::hue = hue;
-    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
-    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 float LEDModeBouncingBalls::getSaturation() {
@@ -83,9 +84,10 @@ float LEDModeBouncingBalls::getSaturation() {
 }
 
 void LEDModeBouncingBalls::setSaturation(float saturation) {
+    LEDMode::setSaturation(saturation);
     LEDModeBouncingBalls::saturation = saturation;
-    strip->clearEndColorTo(HSIColor(hue, saturation, brightness));
-    strip->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeBouncingBalls::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 void LEDModeBouncingBalls::bounceBalls() {
@@ -105,11 +107,11 @@ void LEDModeBouncingBalls::bounceBalls() {
         position[i] = round(height[i] * (NUM_LEDS - 1) / BOUNCING_BALLS_START_HEIGHT);
     }
 
-    strip->clearTo(HSIColor(0, 0, 0));
+    LEDHomeKit::shared()->getStrip()->clearTo(HSIColor(0, 0, 0));
     for (int i = 0 ; i < BOUNCING_BALLS_NUM_BALLS; i++) {
-        strip->setPixelColor(position[i], currentTarget);
+        LEDHomeKit::shared()->getStrip()->setPixelColor(position[i], currentTarget);
     }
-    strip->show();
+    LEDHomeKit::shared()->getStrip()->show();
 }
 
 #endif

@@ -14,31 +14,31 @@
 #include "LEDModeFire.h"
 #include "LEDModeBouncingBalls.h"
 
-inline std::vector<LEDMode *> generateModes(const std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory) {
+inline std::vector<LEDMode *> generateModes(LEDAccessory *accessory) {
     std::vector<LEDMode *> modes;
 
     #ifdef MODE_STATIC
-    modes.push_back(new LEDModeStatic(leds, accessory, true));
+    modes.push_back(new LEDModeStatic(accessory, true));
     #endif
 
     #ifdef MODE_RAINBOW_CYCLE
-    modes.push_back(new LEDModeRainbowCycle(leds, accessory));
+    modes.push_back(new LEDModeRainbowCycle(accessory));
     #endif
 
     #ifdef MODE_FADE
-    modes.push_back(new LEDModeFade(leds, accessory));
+    modes.push_back(new LEDModeFade(accessory));
     #endif
 
     #ifdef MODE_PULSE
-    modes.push_back(new LEDModePulse(leds, accessory));
+    modes.push_back(new LEDModePulse(accessory));
     #endif
 
     #ifdef MODE_FIRE
-    modes.push_back(new LEDModeFire(leds, accessory));
+    modes.push_back(new LEDModeFire(accessory));
     #endif
 
     #ifdef MODE_BOUNCING_BALLS
-    modes.push_back(new LEDModeBouncingBalls(leds, accessory));
+    modes.push_back(new LEDModeBouncingBalls(accessory));
     #endif
     return modes;
 }

@@ -26,7 +26,7 @@
 
 class LEDModeFade : public LEDMode {
 public:
-    explicit LEDModeFade(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, bool primary=false);
+    explicit LEDModeFade(LEDAccessory *accessory, bool primary=false);
     void setup() override;
     void start() override;
     void update() override;

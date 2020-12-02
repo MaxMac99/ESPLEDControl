@@ -31,6 +31,7 @@ typedef std::function<void(const uint16_t index, const HSIColor &startColor, con
 class LEDStrip {
 public:
     LEDStrip();
+    virtual ~LEDStrip() = default;
     virtual void setPixelColor(uint16_t index, HSIColor color);
     virtual void setPixelColor(uint16_t index, RGBColor color) {};
     virtual void setPixelColor(uint16_t index, RGBWColor color) {};

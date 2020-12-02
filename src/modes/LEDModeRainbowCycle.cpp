@@ -6,7 +6,7 @@
 
 #include "modes/LEDModeRainbowCycle.h"
 
-LEDModeRainbowCycle::LEDModeRainbowCycle(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, bool primary) : LEDMode(std::move(strip), accessory, "Rainbow", primary), brightness(100), currentBrightness(100), hue(0), hueAnimationEnabled(false) {
+LEDModeRainbowCycle::LEDModeRainbowCycle(LEDAccessory *accessory, bool primary) : LEDMode(accessory, "Rainbow", primary), brightness(100), currentBrightness(100), hue(0), hueAnimationEnabled(false) {
 
 }
 
@@ -22,8 +22,8 @@ void LEDModeRainbowCycle::handleAnimation(const uint16_t index, const HSIColor &
     if (hueAnimationEnabled) {
         HSIColor color = HSIColor::linearBlend<HueBlendShortestDistance>(startColor, endColor, param.progress);
         currentBrightness = color.intensity;
-        strip->setPixelColor(index, color);
-        if (!strip->isAnimating() && index == NUM_LEDS - 1) {
+        LEDHomeKit::shared()->getStrip()->setPixelColor(index, color);
+        if (!LEDHomeKit::shared()->getStrip()->isAnimating() && index == NUM_LEDS - 1) {
             hueAnimationEnabled = false;
         }
     } else {
@@ -34,10 +34,10 @@ void LEDModeRainbowCycle::handleAnimation(const uint16_t index, const HSIColor &
 void LEDModeRainbowCycle::start() {
     HKLOGINFO("Starting Rainbow Cycle\r\n");
     for (int i = 0; i < NUM_LEDS; i++) {
-        strip->setEndColorPixel(i, HSIColor(getWheelColor(i, hue), 100, brightness));
+        LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, HSIColor(getWheelColor(i, hue), 100, brightness));
     }
     hueAnimationEnabled = true;
-    strip->startAnimation(500, std::bind(&LEDModeRainbowCycle::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeRainbowCycle::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 void LEDModeRainbowCycle::update() {
@@ -50,16 +50,16 @@ void LEDModeRainbowCycle::update() {
     }
     for (int i = 0; i < NUM_LEDS; i++) {
         HSIColor color(getWheelColor(i, hue), 100, currentBrightness);
-        strip->setPixelColor(i, color);
+        LEDHomeKit::shared()->getStrip()->setPixelColor(i, color);
     }
-    strip->show();
+    LEDHomeKit::shared()->getStrip()->show();
 }
 
 void LEDModeRainbowCycle::stop() {
     HKLOGINFO("Stopping Rainbow Cycle\r\n");
     hueAnimationEnabled = true;
-    strip->clearEndColorTo(HSIColor(hue, 100, 0));
-    strip->startAnimation(500, std::bind(&LEDModeRainbowCycle::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, 100, 0));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeRainbowCycle::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 unsigned long LEDModeRainbowCycle::getUpdateInterval() const {
@@ -71,12 +71,13 @@ uint8_t LEDModeRainbowCycle::getBrightness() {
 }
 
 void LEDModeRainbowCycle::setBrightness(uint8_t brightness) {
+    LEDMode::setBrightness(brightness);
     HKLOGDEBUG("[LEDModeRainbowCycle::setBrightness] set brightness to %u\r\n", brightness);
     LEDModeRainbowCycle::brightness = brightness;
     for (int i = 0; i < NUM_LEDS; i++) {
-        strip->setEndColorPixel(i, HSIColor(getWheelColor(i, hue), 100, brightness));
+        LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, HSIColor(getWheelColor(i, hue), 100, brightness));
     }
-    strip->startAnimation(500, std::bind(&LEDModeRainbowCycle::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeRainbowCycle::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 #endif

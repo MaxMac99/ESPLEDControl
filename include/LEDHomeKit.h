@@ -8,21 +8,47 @@
 #include <Arduino.h>
 #include <ESPHomeKit.h>
 #include "LEDAccessory.h"
+#include "LEDMode.h"
 #include <WiFiSetup.h>
+
+#include "FastLEDStrip.h"
+#include "NeoPixelBusStrip.h"
+
+class LEDMode;
 
 class LEDHomeKit {
 public:
-    explicit LEDHomeKit();
-    ~LEDHomeKit();
+    static LEDHomeKit *shared() {
+       static CGuard g;
+       if (!_instance) {
+          _instance = new LEDHomeKit();
+        }
+       return _instance;
+    };
     void setup();
     void update();
     void handleReset();
     void resetPairings();
+    LEDStrip *getStrip();
 private:
     void handleSSIDChange(const String& ssid, const String& password);
 private:
+    static LEDHomeKit *_instance;
+    LEDHomeKit();
+    LEDHomeKit(const LEDHomeKit &) {};
+    ~LEDHomeKit();
+    class CGuard {
+    public:
+        ~CGuard() {
+            if (NULL != LEDHomeKit::_instance) {
+                delete LEDHomeKit::_instance;
+                LEDHomeKit::_instance = NULL;
+            }
+        }
+    };
     ESPHomeKit *hk;
     WiFiSetup *wiFiSetup;
+    LEDStrip *strip;
 };
 
 

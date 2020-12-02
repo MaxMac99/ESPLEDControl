@@ -31,7 +31,7 @@
 
 class LEDModeBouncingBalls : public LEDMode {
 public:
-    explicit LEDModeBouncingBalls(std::shared_ptr<LEDStrip> leds, LEDAccessory *accessory, bool primary=false);
+    explicit LEDModeBouncingBalls(LEDAccessory *accessory, bool primary=false);
     void setup() override;
     void start() override;
     void update() override;

@@ -4,12 +4,22 @@
 
 #include "LEDHomeKit.h"
 
-LEDHomeKit::LEDHomeKit() : hk(new ESPHomeKit()), wiFiSetup(nullptr) {
+LEDHomeKit::LEDHomeKit() : hk(new ESPHomeKit()), wiFiSetup(nullptr)
+#ifdef FAST_LED
+, strip(new FastLEDStrip())
+#else
+, strip(new NeoPixelBusStrip())
+#endif
+{
+    strip->begin();
 }
+
+LEDHomeKit *LEDHomeKit::_instance = 0;
 
 LEDHomeKit::~LEDHomeKit() {
     delete hk;
     delete wiFiSetup;
+    delete strip;
 }
 
 void LEDHomeKit::setup() {
@@ -42,4 +52,8 @@ void LEDHomeKit::handleReset() {
 void LEDHomeKit::resetPairings() {
     HKLOGINFO("[LEDHomeKit::resetPairings] resetPairings\r\n");
     hk->resetPairings();
+}
+
+LEDStrip *LEDHomeKit::getStrip() {
+    return strip;
 }

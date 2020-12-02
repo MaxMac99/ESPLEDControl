@@ -13,7 +13,7 @@
 
 #include "modes/LEDModeFade.h"
 
-LEDModeFade::LEDModeFade(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, bool primary) : LEDMode(std::move(strip), accessory, "Fade", primary), brightness(100), currentBrightness(100), hue(0), hueAnimationEnabled(false) {
+LEDModeFade::LEDModeFade(LEDAccessory *accessory, bool primary) : LEDMode(accessory, "Fade", primary), brightness(100), currentBrightness(100), hue(0), hueAnimationEnabled(false) {
 
 }
 
@@ -25,8 +25,8 @@ void LEDModeFade::handleAnimation(const uint16_t index, const HSIColor &startCol
     if (hueAnimationEnabled) {
         HSIColor color = HSIColor::linearBlend<HueBlendShortestDistance>(startColor, endColor, param.progress);
         currentBrightness = color.intensity;
-        strip->setPixelColor(index, color);
-        if (!strip->isAnimating() && index == NUM_LEDS - 1) {
+        LEDHomeKit::shared()->getStrip()->setPixelColor(index, color);
+        if (!LEDHomeKit::shared()->getStrip()->isAnimating() && index == NUM_LEDS - 1) {
             HKLOGINFO("[LEDModeFade::handleAnimation] end animation\r\n");
             hueAnimationEnabled = false;
         }
@@ -37,9 +37,9 @@ void LEDModeFade::handleAnimation(const uint16_t index, const HSIColor &startCol
 
 void LEDModeFade::start() {
     HKLOGINFO("Starting Fade\r\n");
-    strip->clearEndColorTo(HSIColor(hue, 100, brightness));
+    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, 100, brightness));
     hueAnimationEnabled = true;
-    strip->startAnimation(500, std::bind(&LEDModeFade::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeFade::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 void LEDModeFade::update() {
@@ -51,15 +51,15 @@ void LEDModeFade::update() {
         hue %= 360;
     }
     
-    strip->clearTo(HSIColor(hue, 100, currentBrightness));
-    strip->show();
+    LEDHomeKit::shared()->getStrip()->clearTo(HSIColor(hue, 100, currentBrightness));
+    LEDHomeKit::shared()->getStrip()->show();
 }
 
 void LEDModeFade::stop() {
     HKLOGINFO("Stopping Fade\r\n");
     hueAnimationEnabled = true;
-    strip->clearEndColorTo(HSIColor(hue, 100, 0));
-    strip->startAnimation(500, std::bind(&LEDModeFade::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, 100, 0));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeFade::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 unsigned long LEDModeFade::getUpdateInterval() const {
@@ -71,9 +71,10 @@ uint8_t LEDModeFade::getBrightness() {
 }
 
 void LEDModeFade::setBrightness(uint8_t brightness) {
+    LEDMode::setBrightness(brightness);
     LEDModeFade::brightness = brightness;
-    strip->clearEndColorTo(HSIColor(hue, 100, brightness));
-    strip->startAnimation(500, std::bind(&LEDModeFade::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, 100, brightness));
+    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeFade::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
 #endif

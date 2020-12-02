@@ -4,7 +4,7 @@
 
 #include "LEDMode.h"
 
-LEDMode::LEDMode(std::shared_ptr<LEDStrip> strip, LEDAccessory *accessory, String name, bool primary) : HKService(HKServiceLightBulb, false, primary, name), accessory(accessory), strip(std::move(strip)) {}
+LEDMode::LEDMode(LEDAccessory *accessory, String name, bool primary) : HKService(HKServiceLightBulb, false, primary, name), accessory(accessory) {}
 
 void LEDMode::setupCharacteristics() {
     auto onChar = new HKCharacteristic(HKCharacteristicOn, HKValue(FormatBool, false), PermissionPairedRead | PermissionPairedWrite | PermissionNotify, "On", FormatBool);
