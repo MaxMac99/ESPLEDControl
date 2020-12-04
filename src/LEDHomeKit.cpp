@@ -26,6 +26,9 @@ LEDHomeKit::~LEDHomeKit() {
 }
 
 void LEDHomeKit::setup() {
+    strip->clearTo(HSIColor(0, 100, 0));
+    strip->show();
+    
     auto accessory = new LEDAccessory("Max LED Strip", "LEDs", "2.0");
     hk->setAccessory(accessory);
 
