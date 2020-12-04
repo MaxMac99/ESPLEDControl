@@ -10,6 +10,7 @@
 #include "LEDAccessory.h"
 #include "LEDMode.h"
 #include <WiFiSetup.h>
+#include <ArduinoOTA.h>
 
 #include "FastLEDStrip.h"
 #include "NeoPixelBusStrip.h"

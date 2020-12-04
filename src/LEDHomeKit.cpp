@@ -32,12 +32,43 @@ void LEDHomeKit::setup() {
     auto accessory = new LEDAccessory("Max LED Strip", "LEDs", "2.0");
     hk->setAccessory(accessory);
 
+    // Wifi setup
     HKLOGINFO("[LEDHomeKit::setup] starting WiFi setup name: %s\r\n", hk->getName().c_str());
     wiFiSetup = new WiFiSetup(HKStorage::getSSID(), HKStorage::getWiFiPassword(), hk->getName(), std::bind(&LEDHomeKit::handleSSIDChange, this, std::placeholders::_1, std::placeholders::_2));
     wiFiSetup->start();
+    HKLOGINFO("[LEDHomeKit::setup] WiFiSetup started\r\n");
 
+    // HomeKit
     hk->setup();
     
+    // OTA
+    ArduinoOTA.setHostname(hk->getName().c_str());
+    ArduinoOTA.setPassword(String(HKPASSWORD).c_str());
+
+    #if HKLOGLEVEL <= 1
+    ArduinoOTA.onStart([]() {
+        HKLOGINFO("[ArduinoOTA] Start\r\n");
+    });
+    ArduinoOTA.onEnd([]() {
+        HKLOGINFO("[ArduinoOTA] End\r\n");
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        HKLOGINFO("[ArduinoOTA] Progress: %u%%\r", (progress / (total / 100)));
+    });
+    #endif
+    #if HKLOGLEVEL <= 3
+    ArduinoOTA.onError([](ota_error_t error) {
+        if (error == OTA_AUTH_ERROR) HKLOGERROR("[ArduinoOTA] Error[%u]: Auth Failed\r\n", error);
+        else if (error == OTA_BEGIN_ERROR) HKLOGERROR("[ArduinoOTA] Error[%u]: Begin Failed\r\n", error);
+        else if (error == OTA_CONNECT_ERROR) HKLOGERROR("[ArduinoOTA] Error[%u]: Connect Failed\r\n", error);
+        else if (error == OTA_RECEIVE_ERROR) HKLOGERROR("[ArduinoOTA] Error[%u]: Receive Failed\r\n", error);
+        else if (error == OTA_END_ERROR) HKLOGERROR("[ArduinoOTA] Error[%u]: End Failed\r\n", error);
+    });
+    #endif
+
+    ArduinoOTA.begin();
+    
+    // Alexa
     #ifdef ALEXA_SUPPORT
     if (!alexaUdp.beginMulticast(WiFi.localIP(), IPAddress(239, 255, 255, 250), 1900)) {
         return;
@@ -46,9 +77,12 @@ void LEDHomeKit::setup() {
     server->on("/description.xml", HTTP_GET, std::bind(&LEDHomeKit::serveDescription, this));
     server->begin();
     #endif
+
+    HKLOGINFO("[LEDHomeKit::setup] Setup finished\r\n");
 }
 
 void LEDHomeKit::update() {
+    ArduinoOTA.handle();
     hk->update();
     wiFiSetup->update();
     
