@@ -19,6 +19,9 @@ void LEDMode::turnOn() {
     if (HKCharacteristic *characteristic = getCharacteristic(HKCharacteristicOn)) {
         characteristic->notify(HKValue(FormatBool, true));
     }
+    if (getCharacteristic(HKCharacteristicOn) != nullptr && getBrightness() == 0) {
+        this->setBrightness(100);
+    }
     start();
 }
 

@@ -50,11 +50,14 @@ void LEDHomeKit::update() {
     wiFiSetup->update();
     
     #ifdef ALEXA_SUPPORT
-    if (!alexaUdp.parsePacket()) return;
-
-    String request = alexaUdp.readString();
-    alexaUdp.flush();
+    int len = alexaUdp.parsePacket();
+    if (len <= 0) return;
     
+    unsigned char data[len+1];
+    alexaUdp.read(data, len);
+    data[len] = 0;
+    
+    String request = (const char *) data;
     if (request.indexOf("M-SEARCH") >= 0) {
         if ((request.indexOf("ssdp:discover") > 0) || (request.indexOf("upnp:rootdevice") > 0) || (request.indexOf("device:basic:1") > 0)) {
             respondToAlexaSearch();
@@ -86,6 +89,7 @@ LEDStrip *LEDHomeKit::getStrip() {
 
 #ifdef ALEXA_SUPPORT
 void LEDHomeKit::serveNotFound() {
+    
     String req = server->uri();
     String body = server->arg(0);
     #if HKLOGLEVEL == 0
@@ -99,66 +103,15 @@ void LEDHomeKit::serveNotFound() {
             if (serveControl(req, body)) return;
         }
     }
-    server->send(404, "text/plain", "Not Found (espalexa)");
-    return;
-
-    if (body.indexOf("devicetype") > 0) { //client wants a hue api username, we don't care and give static
-        body = "";
-        server->send(200, "application/json", F("[{\"success\":{\"username\":\"2WLEDHardQrI3WHYTHoMcXHgEspsM8ZZRpSKtBQr\"}}]"));
-    }
-
-    if (req.indexOf("state") > 0) {  //client wants to control light
-        server->send(200, "application/json", F("[{\"success\":{\"/lights/1/state/\": true}}]"));
-
-        uint32_t devId = req.substring(req.indexOf("lights")+7).toInt();
-        devId = devId & 0xF;
-        devId--; //zero-based for devices array
-    
-        LEDMode *selectedDevice = nullptr;
-        uint i = 0;
-        for (auto service : hk->getAccessory()->getServices()) {
-            if (service->getClassId() >= LEDMODE_CLASS_ID) {
-                if (i == devId) {
-                    selectedDevice = static_cast<LEDMode *>(service);
-                }
-                i++;
-            }
-        }
-        if (selectedDevice == nullptr) {
-            return;
-        }
-        
-        if (body.indexOf("false") > 0) {  //OFF command
-            selectedDevice->stop();
-            return;
-        }
-    
-        if (body.indexOf("true") > 0) {  //ON command
-            selectedDevice->start();
-        }
-    
-        if (body.indexOf("bri") > 0) { //BRIGHTNESS command
-            uint8_t briL = body.substring(body.indexOf("bri") + 5).toInt();
-            if (briL == 255) {
-                selectedDevice->setBrightness(100);
-            } else {
-                selectedDevice->setBrightness((briL + 1) / 2.55);
-            }
-        }
-    
-        if (body.indexOf("hue") > 0) {  //COLOR command (HS mode)
-            selectedDevice->setHue(body.substring(body.indexOf("hue") + 5).toInt());
-            selectedDevice->setSaturation(body.substring(body.indexOf("sat") + 5).toInt());
-        }
-    }
+    server->send(404, F("text/plain"), F("Not Found (espalexa)"));
 }
 
 bool LEDHomeKit::serveList(String url, String body) {
     int pos = url.indexOf("lights");
     if (pos == -1) return false;
-    HKLOGDEBUG("[ALEXA] Handling list request\r\n");
 
-    unsigned char id = url.substring(pos+7).toInt();
+    uint id = url.substring(pos+7).toInt();
+    HKLOGDEBUG("[ALEXA] Handling list request id: %u\r\n", id);
     String response;
     if (id == 0) {
         response += "{";
@@ -168,7 +121,7 @@ bool LEDHomeKit::serveList(String url, String body) {
                 if (i > 0) {
                     response += ",";
                 }
-                response += deviceToJSON(static_cast<LEDMode *>(service), i);
+                response += "\"" + String(i+1) + "\":" + deviceToJSON(static_cast<LEDMode *>(service), i);
                 i++;
             }
         }
@@ -185,15 +138,28 @@ bool LEDHomeKit::serveList(String url, String body) {
             }
         }
     }
-    HKLOGDEBUG("[ALEXA] List request response: %s\r\n", response.c_str());
-    server->send(200, "application/json", response);
+	char headers[strlen_P(HKALEXA_TCP_HEADERS) + 32];
+	snprintf_P(
+		headers, sizeof(headers),
+		HKALEXA_TCP_HEADERS,
+		"application/json", response.length()
+	);
+    server->sendContent(String(headers) + response);
+    HKLOGDEBUG("[ALEXA] List request response: %s%s\r\n", headers, response.c_str());
     return true;
 }
 
 bool LEDHomeKit::serveControl(String url, String body) {
     if (body.indexOf("devicetype") > 0) {
         HKLOGDEBUG("[ALEXA] Handling devicetype request\r\n");
-        server->send(200, "application/json", F("[{\"success\":{\"username\":\"2WLEDHardQrI3WHYTHoMcXHgEspsM8ZZRpSKtBQr\"}}]"));
+        String response = F("[{\"success\":{\"username\":\"2WLEDHardQrI3WHYTHoMcXHgEspsM8ZZRpSKtBQr\"}}]");
+        char headers[strlen_P(HKALEXA_TCP_HEADERS) + 32];
+        snprintf_P(
+            headers, sizeof(headers),
+            HKALEXA_TCP_HEADERS,
+            "application/json", response.length()
+        );
+        server->sendContent(String(headers) + response);
         return true;
     }
 
@@ -202,8 +168,7 @@ bool LEDHomeKit::serveControl(String url, String body) {
         if (pos == -1) return false;
         HKLOGDEBUG("[ALEXA] Handling control request: %s\r\n", body.c_str());
 
-        unsigned char id = url.substring(pos+7).toInt();
-
+        uint id = url.substring(pos+7).toInt();
         if (id > 0) {
             id--;
             LEDMode *selectedDevice = nullptr;
@@ -228,8 +193,14 @@ bool LEDHomeKit::serveControl(String url, String body) {
                 static_cast<LEDAccessory *>(hk->getAccessory())->setOn(selectedDevice, HKValue(FormatBool, true));
 			}
 			pos = body.indexOf("bri");
+            int brightness = static_cast<LEDAccessory *>(hk->getAccessory())->getBrightness(selectedDevice).intValue*255;
+            brightness /= 100;
+            if (brightness >= 255 || brightness == 0) {
+                brightness = 254;
+            }
 			if (pos > 0) {
 				unsigned char value = body.substring(pos+5).toInt();
+                brightness = value;
                 if (value >= 254) {
                     value = 100;
                 } else {
@@ -253,18 +224,25 @@ bool LEDHomeKit::serveControl(String url, String body) {
                 static_cast<LEDAccessory *>(hk->getAccessory())->setSaturation(selectedDevice, HKValue(FormatFloat, value));
             }
 
-			char response[512];
-			sprintf_P(
+			char response[strlen_P(HKALEXA_TCP_STATE_RESPONSE)+10];
+			snprintf_P(
 				response,
-				PSTR("["
-                    "{\"success\":{\"/lights/%d/state/on\":%s}}"
-                    // "{\"success\":{\"/lights/%d/state/bri\":%d}}"   // not needed?
-                "]"),
+                sizeof(response),
+				HKALEXA_TCP_STATE_RESPONSE,
 				id+1,
-                (static_cast<LEDAccessory *>(hk->getAccessory())->getOn(selectedDevice).boolValue)?"true":"false"
+                (static_cast<LEDAccessory *>(hk->getAccessory())->getOn(selectedDevice).boolValue)?"true":"false",
+                id+1,
+                brightness
 			);
-            HKLOGDEBUG("[ALEXA] Control request response: %s\r\n", response);
-            server->send(200, "text/xml", response);
+
+            char headers[strlen_P(HKALEXA_TCP_HEADERS) + 32];
+            snprintf_P(
+                headers, sizeof(headers),
+                HKALEXA_TCP_HEADERS,
+                "text/xml", strlen(response)
+            );
+            server->sendContent(String(headers) + response);
+            HKLOGDEBUG("[ALEXA] Control request response: %s%s\r\n", headers, response);
 			return true;
         }
     }
@@ -272,25 +250,33 @@ bool LEDHomeKit::serveControl(String url, String body) {
 }
 
 String LEDHomeKit::deviceToJSON(LEDMode *mode, uint8_t id) {
-    String jsonTemp = "\"" + String(id+1) + "\":";
-    char buf[512];
-    String type = "Dimmable Light";
-    String modelid = "LWB010";
-    int hue = 0;
-    int saturation = 0;
+    String type = F("Dimmable light");
+    String modelid = F("LWB010");
+    int typeId = 1;
+    String colormode = "";
+    char buf_col[strlen_P(HKALEXA_DEVICE_JSON_COLOR_TEMPLATE) + 8];
+    buf_col[0] = 0;
     if (mode->getCharacteristic(HKCharacteristicHue)) {
-        hue = static_cast<LEDAccessory *>(hk->getAccessory())->getHue(mode).floatValue * (65535.0/360.0);
+        int hue = static_cast<LEDAccessory *>(hk->getAccessory())->getHue(mode).floatValue * (65535.0/360.0);
         if (hue > 65535) {
             hue %= 65535;
         }
-        saturation = (int)static_cast<LEDAccessory *>(hk->getAccessory())->getSaturation(mode).floatValue * 255;
+        int saturation = (int)static_cast<LEDAccessory *>(hk->getAccessory())->getSaturation(mode).floatValue * 255;
         saturation /= 100;
         if (saturation >= 255) {
             saturation = 254;
         }
 
-        type = "Color Light";
-        modelid = "LST001";
+        type = F("Color light");
+        modelid = F("LST001");
+        typeId = 3;
+        snprintf_P(buf_col,
+            sizeof(buf_col),
+            HKALEXA_DEVICE_JSON_COLOR_TEMPLATE,
+            hue, 
+            saturation);
+        
+        colormode = F("\"colormode\":\"hs\",");
     }
     int brightness = static_cast<LEDAccessory *>(hk->getAccessory())->getBrightness(mode).intValue*255;
     brightness /= 100;
@@ -303,34 +289,22 @@ String LEDHomeKit::deviceToJSON(LEDMode *mode, uint8_t id) {
     mac.toLowerCase();
     mac.concat(mode->getName());
     String uniqueid = makeMD5(mac).substring(0, 12);
-    // String uniqueid = mac + "-0" + String(id);
 
-    sprintf_P(buf, PSTR("{"
-            "\"type\":\"Extended Color Light\","
-            "\"name\":\"%s\","
-            "\"uniqueid\":\"%s\","
-            // "\"modelid\":\"%s\","
-            "\"modelid\":\"LCT007\","
-            "\"state\":{"
-                // "\"on\":%s,\"bri\":%d,\"hue\":%d,\"sat\":%d,\"xy\":[0,0],\"colormode\":\"hs\",\"reachable\": true"
-                "\"on\":%s,\"bri\":%d,\"xy\":[0,0],\"reachable\": true"
-            "},"
-            "\"capabilities\":{"
-                "\"certified\":false,"
-                "\"streaming\":{\"renderer\":true,\"proxy\":false}"
-            "},"
-            "\"swversion\":\"5.105.0.21169\""
-        "}"),
-        // type.c_str(),
+    char buf[strlen_P(HKALEXA_DEVICE_JSON_TEMPLATE) + strlen_P(HKALEXA_DEVICE_JSON_COLOR_TEMPLATE) + 100];
+    snprintf_P(buf, 
+        sizeof(buf),
+        HKALEXA_DEVICE_JSON_TEMPLATE,
+        type.c_str(),
         mode->getName().c_str(),
         uniqueid.c_str(),
-        // modelid.c_str(),
+        modelid.c_str(),
+        typeId,
         (static_cast<LEDAccessory *>(hk->getAccessory())->getOn(mode).boolValue)?"true":"false",
-        brightness
-        // hue,
-        // saturation
-        );
-    return jsonTemp + String(buf);
+        brightness,
+        buf_col,
+        colormode.c_str()
+    );
+    return String(buf);
 }
 
 void LEDHomeKit::serveDescription() {
@@ -348,7 +322,7 @@ void LEDHomeKit::serveDescription() {
     escapedMac.toLowerCase();
 
     char buf[1024];
-    sprintf_P(buf,PSTR("<?xml version=\"1.0\" ?>"
+    sprintf_P(buf, PSTR("<?xml version=\"1.0\" ?>"
         "<root xmlns=\"urn:schemas-upnp-org:device-1-0\">"
             "<specVersion><major>1</major><minor>0</minor></specVersion>"
             "<URLBase>http://%s:80/</URLBase>"
@@ -365,7 +339,11 @@ void LEDHomeKit::serveDescription() {
                 "<UDN>uuid:2f402f80-da50-11e1-9b23-%s</UDN>"
                 "<presentationURL>index.html</presentationURL>"
             "</device>"
-        "</root>"), s, s, escapedMac.c_str(), escapedMac.c_str());
+        "</root>"), 
+        s, 
+        s, 
+        escapedMac.c_str(), 
+        escapedMac.c_str());
         
     server->send(200, "text/xml", buf);
 }
@@ -374,11 +352,6 @@ void LEDHomeKit::respondToAlexaSearch() {
     IPAddress localIP = WiFi.localIP();
     char s[16];
     sprintf(s, "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
-
-    #if HKLOGLEVEL == 0
-    IPAddress remoteIP = alexaUdp.remoteIP();
-    HKLOGDEBUG("[LEDHomeKit::respondToAlexaSearch] remoteIP: %d.%d.%d.%d:%u\r\n", remoteIP[0], remoteIP[1], remoteIP[2], remoteIP[3], alexaUdp.remotePort());
-    #endif
 
     String escapedMac = WiFi.macAddress();
     escapedMac.replace(":", "");
