@@ -28,8 +28,13 @@ LEDHomeKit::~LEDHomeKit() {
 void LEDHomeKit::setup() {
     strip->clearTo(HSIColor(0, 100, 0));
     strip->show();
-    
-    auto accessory = new LEDAccessory("Max LED Strip", "LEDs", "2.0");
+
+    #ifdef HK_NAME
+    String name = String(HK_NAME);
+    #else
+    String name = "Max LED Strip";
+    #endif
+    auto accessory = new LEDAccessory(name, "LEDs", "2.0");
     hk->setAccessory(accessory);
 
     // Wifi setup
@@ -40,7 +45,7 @@ void LEDHomeKit::setup() {
 
     // HomeKit
     hk->setup();
-    
+
     // OTA
     ArduinoOTA.setHostname(hk->getName().c_str());
     ArduinoOTA.setPassword(String(HKPASSWORD).c_str());
