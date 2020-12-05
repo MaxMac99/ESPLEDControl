@@ -4,7 +4,13 @@
 
 #include "LEDMode.h"
 
-LEDMode::LEDMode(LEDAccessory *accessory, String name, bool primary) : HKService(HKServiceLightBulb, false, primary, name), accessory(accessory) {}
+LEDMode::LEDMode(LEDAccessory *accessory, String name, bool primary) :
+#ifdef HK_MODE_PREFIX
+HKService(HKServiceLightBulb, false, primary, HK_MODE_PREFIX " " + name), 
+#else
+HKService(HKServiceLightBulb, false, primary, name), 
+#endif
+accessory(accessory) {}
 
 void LEDMode::setupCharacteristics() {
     auto onChar = new HKCharacteristic(HKCharacteristicOn, HKValue(FormatBool, false), PermissionPairedRead | PermissionPairedWrite | PermissionNotify, "On", FormatBool);
