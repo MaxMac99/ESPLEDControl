@@ -4,6 +4,7 @@ import PIL.ImageDraw
 import PIL.ImageFont
 import qrcode
 import rstr
+import argparse
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -60,26 +61,27 @@ def gen_homekit_qrcode(setup_uri, password):
 
 
 def main():
-    category = 5
-    password = rstr.xeger("\d{3}-\d{2}-\d{3}")
-    setup_id = rstr.xeger("[0-9A-Z]{4}")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--password", type=str, default=None)
+    parser.add_argument("--setupid", type=str, default=None)
+    parser.add_argument("--category", type=int, default=5)
+    parser.add_argument("--filename", type=str, default="qrcode")
+    args = parser.parse_args()
 
-    with open("platformio-model.ini", "r") as model_file:
-        model = model_file.read()
-        model_file.close()
-        model += "\r\n    -DHKPASSWORD=\\\"" + password + "\\\"\r\n"
-        model += "    -DHKSETUPID=\\\"" + setup_id + "\\\"\r\n"
-        with open("platformio.ini", "w") as file:
-            file.write(model)
-            file.close()
-
-    setupURI = gen_homekit_setup_uri(category, password, setup_id)
-
+    if args.password is None:
+        password = rstr.xeger("\d{3}-\d{2}-\d{3}")
+        setup_id = rstr.xeger("[0-9A-Z]{4}")
+    else:
+        password = args.password
+        if args.setupid is not None:
+            setup_id = args.setupid
+        else:
+            setup_id = ""
+    print(f"-D HKPASSWORD=\\\"{password}\\\"")
+    print(f"-D HKSETUPID=\\\"{setup_id}\\\"")
+    setupURI = gen_homekit_setup_uri(args.category, password, setup_id)
     qrcodeImage = gen_homekit_qrcode(setupURI, password)
-
-    qrcodeImage.save("qrcode.png")
-
-    os.system("platformio -f run --target upload")
+    qrcodeImage.save(f"{args.filename}.png")
 
 
 if __name__ == '__main__':
