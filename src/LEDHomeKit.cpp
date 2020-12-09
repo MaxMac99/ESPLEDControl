@@ -44,6 +44,7 @@ void LEDHomeKit::setup() {
     wiFiSetup = new WiFiSetup(HKStorage::getSSID(), HKStorage::getWiFiPassword(), hk->getName(), std::bind(&LEDHomeKit::handleSSIDChange, this, std::placeholders::_1, std::placeholders::_2));
     wiFiSetup->start();
     HKLOGINFO("[LEDHomeKit::setup] WiFiSetup started\r\n");
+    HKLOGINFO("[LEDHomeKit::setup] IP Adress: %s\r\n", WiFi.localIP().toString().c_str());
 
     hk->begin();
     

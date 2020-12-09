@@ -33,20 +33,20 @@ void ESPAlexaLights::begin() {
 
 void ESPAlexaLights::handle() {
     int len = udpServer.parsePacket();
-    if (len <= 0) return;
-    
-    uint8_t *data = (uint8_t *) malloc(len+1);
-    udpServer.read(data, len);
-    data[len] = 0;
-    
-    String request = (const char *) data;
-    if (request.indexOf("M-SEARCH") >= 0) {
-        if ((request.indexOf("ssdp:discover") > 0) || (request.indexOf("upnp:rootdevice") > 0) || (request.indexOf("device:basic:1") > 0)) {
-            free(data);
-            serveUDPMessage();
+    if (len > 0) {
+        uint8_t *data = (uint8_t *) malloc(len+1);
+        udpServer.read(data, len);
+        data[len] = 0;
+        
+        String request = String((char *) data);
+        if (request.indexOf("M-SEARCH") >= 0) {
+            if ((request.indexOf("ssdp:discover") > 0) || (request.indexOf("upnp:rootdevice") > 0) || (request.indexOf("device:basic:1") > 0)) {
+                serveUDPMessage();
+            }
         }
+        free(data);
     }
-    free(data);
+    
     server->handleClient();
 }
 
@@ -78,6 +78,11 @@ void ESPAlexaLights::serveDescription() {
     IPAddress localIP = WiFi.localIP();
     char s[16];
     sprintf(s, "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
+
+    #if HKLOGLEVEL == 0
+    IPAddress remoteIP = udpServer.remoteIP();
+    HKLOGDEBUG("[LEDHomeKit::serveDescription] remoteIP: %d.%d.%d.%d:%u\r\n", remoteIP[0], remoteIP[1], remoteIP[2], remoteIP[3], udpServer.remotePort());
+    #endif
 
     String escapedMac = WiFi.macAddress();
     escapedMac.replace(":", "");
@@ -113,6 +118,11 @@ void ESPAlexaLights::serveDescription() {
 void ESPAlexaLights::serveNotFound() {
     String req = server->uri();
     String body = server->arg(0);
+
+    #if HKLOGLEVEL == 0
+    IPAddress remoteIP = server->client().remoteIP();
+    HKLOGDEBUG("[LEDHomeKit::serveNotFound] ip: %s url: %s body: %s\r\n", remoteIP.toString().c_str(), req.c_str(), body.c_str());
+    #endif
     
     if (req.startsWith("/api")) {
         if (server->method() == HTTP_GET) {
@@ -133,6 +143,7 @@ bool ESPAlexaLights::serveList(const String &url, const String &body) {
     if (pos == -1) return false;
 
     uint id = url.substring(pos+7).toInt();
+    HKLOGDEBUG("[ALEXA] Handling list request id: %u\r\n", id);
     String response;
     if (id == 0) {
         response += "{";
@@ -161,11 +172,12 @@ bool ESPAlexaLights::serveList(const String &url, const String &body) {
     }
     char *headers = (char *) malloc(strlen_P(ESPALEXA_TCP_HEADERS) + 32);
     
-	snprintf_P(
-		headers, sizeof(headers),
+	sprintf_P(
+		headers,
 		ESPALEXA_TCP_HEADERS,
-		"application/json", response.length()
+		PSTR("application/json"), response.length()
 	);
+    HKLOGDEBUG("[ALEXA] Response: %s\r\n", response.c_str());
     server->sendContent(String(headers) + response);
     free(headers);
     return true;
@@ -176,6 +188,7 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
 
     int pos = url.indexOf("lights");
     if (pos == -1) return false;
+    HKLOGDEBUG("[ALEXA] Handling control request: %s\r\n", body.c_str());
 
     uint id = url.substring(pos+7).toInt();
     if (id <= 0) return false;
@@ -235,9 +248,8 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
     }
 
     char *response = (char *) malloc(strlen_P(ESPALEXA_TCP_STATE_RESPONSE)+10);
-    snprintf_P(
+    sprintf_P(
         response,
-        sizeof(response),
         ESPALEXA_TCP_STATE_RESPONSE,
         id+1,
         (static_cast<LEDAccessory *>(hk->getAccessory())->getOn(selectedDevice).boolValue)?"true":"false",
@@ -246,26 +258,28 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
     );
 
     char *headers = (char *) malloc(strlen_P(ESPALEXA_TCP_HEADERS) + 32);
-    snprintf_P(
-        headers, sizeof(headers),
+    sprintf_P(
+        headers,
         ESPALEXA_TCP_HEADERS,
-        "text/xml", strlen(response)
+        PSTR("text/xml"), strlen(response)
     );
     server->sendContent(String(headers) + response);
+    HKLOGDEBUG("[ALEXA] Control request response: %s%s\r\n", headers, response);
     free(response);
     free(headers);
     return true;
 }
 
 bool ESPAlexaLights::serveDeviceType() {
-    String response = F("[{\"success\":{\"username\":\"2WLEDHardQrI3WHYTHoMcXHgEspsM8ZZRpSKtBQr\"}}]");
-    char *headers = (char *) malloc(strlen_P(ESPALEXA_TCP_HEADERS) + 32);
-    snprintf_P(
-        headers, sizeof(headers),
-        ESPALEXA_TCP_HEADERS,
-        "application/json", response.length()
+    HKLOGDEBUG("[ALEXA] Handling devicetype request\r\n");
+    char *headers = (char *) malloc(sizeof(ESPALEXA_TCP_HEADERS_WITH_CONTENT) + 32 + strlen_P(ESPALEXA_DEVICE_TYPE_RESPONSE));
+    size_t currentSize = sprintf_P(
+        headers,
+        ESPALEXA_TCP_HEADERS_WITH_CONTENT,
+        PSTR("application/json"), strlen_P(ESPALEXA_DEVICE_TYPE_RESPONSE),
+        ESPALEXA_DEVICE_TYPE_RESPONSE
     );
-    server->sendContent(String(headers) + response);
+    server->sendContent(headers, currentSize);
     free(headers);
     return true;
 }
@@ -292,8 +306,7 @@ String ESPAlexaLights::deviceToJSON(LEDMode *mode, uint8_t id) {
         type = F("Color light");
         modelid = F("LST001");
         typeId = 3;
-        snprintf_P(buf_col,
-            sizeof(buf_col),
+        sprintf_P(buf_col,
             ESPALEXA_DEVICE_JSON_COLOR_TEMPLATE,
             hue, 
             saturation);
@@ -313,8 +326,7 @@ String ESPAlexaLights::deviceToJSON(LEDMode *mode, uint8_t id) {
     String uniqueid = makeMD5(mac).substring(0, 12);
 
     char *buf = (char *) malloc(strlen_P(ESPALEXA_DEVICE_JSON_TEMPLATE) + strlen_P(ESPALEXA_DEVICE_JSON_COLOR_TEMPLATE) + 100);
-    snprintf_P(buf, 
-        sizeof(buf),
+    sprintf_P(buf,
         ESPALEXA_DEVICE_JSON_TEMPLATE,
         type.c_str(),
         mode->getName().c_str(),

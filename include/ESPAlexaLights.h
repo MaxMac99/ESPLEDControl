@@ -21,9 +21,15 @@
 
 PROGMEM const char ESPALEXA_TCP_HEADERS[] =
     "HTTP/1.1 200 OK\r\n"
-    "Content-Type: %s\r\n"
+    "Content-Type: %S\r\n"
     "Content-Length: %d\r\n"
     "Connection: close\r\n\r\n";
+PROGMEM const char ESPALEXA_TCP_HEADERS_WITH_CONTENT[] =
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: %S\r\n"
+    "Content-Length: %d\r\n"
+    "Connection: close\r\n\r\n"
+    "%S";
 PROGMEM const char ESPALEXA_TCP_STATE_RESPONSE[] = "["
     "{\"success\":{\"/lights/%d/state/on\":%s}},"
     "{\"success\":{\"/lights/%d/state/bri\":%d}}"   // not needed?
@@ -44,6 +50,12 @@ PROGMEM const char ESPALEXA_DEVICE_JSON_COLOR_TEMPLATE[] = "\"hue\":%u,"
     "\"sat\":%u,"
     "\"effect\":\"none\","
     "\"xy\":[0.0,0.0],";
+PROGMEM const char ESPALEXA_DEVICE_TYPE_RESPONSE[] = "["
+    "{"
+        "\"success\":{"
+            "\"username\":\"2WLEDHardQrI3WHYTHoMcXHgEspsM8ZZRpSKtBQr\""
+        "}"
+    "}]";
 
 class LEDMode;
 
