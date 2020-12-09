@@ -159,7 +159,7 @@ bool ESPAlexaLights::serveList(const String &url, const String &body) {
             }
         }
     }
-	char headers[strlen_P(ESPALEXA_TCP_HEADERS) + 32];
+    char *headers = (char *) malloc(strlen_P(ESPALEXA_TCP_HEADERS) + 32);
     
 	snprintf_P(
 		headers, sizeof(headers),
@@ -167,6 +167,7 @@ bool ESPAlexaLights::serveList(const String &url, const String &body) {
 		"application/json", response.length()
 	);
     server->sendContent(String(headers) + response);
+    free(headers);
     return true;
 }
 
@@ -233,7 +234,7 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
         static_cast<LEDAccessory *>(hk->getAccessory())->setSaturation(selectedDevice, HKValue(HKFormatFloat, value));
     }
 
-    char response[strlen_P(ESPALEXA_TCP_STATE_RESPONSE)+10];
+    char *response = (char *) malloc(strlen_P(ESPALEXA_TCP_STATE_RESPONSE)+10);
     snprintf_P(
         response,
         sizeof(response),
@@ -244,25 +245,28 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
         brightness
     );
 
-    char headers[strlen_P(ESPALEXA_TCP_HEADERS) + 32];
+    char *headers = (char *) malloc(strlen_P(ESPALEXA_TCP_HEADERS) + 32);
     snprintf_P(
         headers, sizeof(headers),
         ESPALEXA_TCP_HEADERS,
         "text/xml", strlen(response)
     );
     server->sendContent(String(headers) + response);
+    free(response);
+    free(headers);
     return true;
 }
 
 bool ESPAlexaLights::serveDeviceType() {
     String response = F("[{\"success\":{\"username\":\"2WLEDHardQrI3WHYTHoMcXHgEspsM8ZZRpSKtBQr\"}}]");
-    char headers[strlen_P(ESPALEXA_TCP_HEADERS) + 32];
+    char *headers = (char *) malloc(strlen_P(ESPALEXA_TCP_HEADERS) + 32);
     snprintf_P(
         headers, sizeof(headers),
         ESPALEXA_TCP_HEADERS,
         "application/json", response.length()
     );
     server->sendContent(String(headers) + response);
+    free(headers);
     return true;
 }
 
@@ -271,7 +275,8 @@ String ESPAlexaLights::deviceToJSON(LEDMode *mode, uint8_t id) {
     String modelid = F("LWB010");
     int typeId = 1;
     String colormode = "";
-    char buf_col[strlen_P(ESPALEXA_DEVICE_JSON_COLOR_TEMPLATE) + 8];
+    
+    char *buf_col = (char *) malloc(strlen_P(ESPALEXA_DEVICE_JSON_COLOR_TEMPLATE) + 8);
     buf_col[0] = 0;
     if (mode->getCharacteristic(HKCharacteristicHue)) {
         int hue = static_cast<LEDAccessory *>(hk->getAccessory())->getHue(mode).floatValue * (65535.0/360.0);
@@ -307,7 +312,7 @@ String ESPAlexaLights::deviceToJSON(LEDMode *mode, uint8_t id) {
     mac.concat(mode->getName());
     String uniqueid = makeMD5(mac).substring(0, 12);
 
-    char buf[strlen_P(ESPALEXA_DEVICE_JSON_TEMPLATE) + strlen_P(ESPALEXA_DEVICE_JSON_COLOR_TEMPLATE) + 100];
+    char *buf = (char *) malloc(strlen_P(ESPALEXA_DEVICE_JSON_TEMPLATE) + strlen_P(ESPALEXA_DEVICE_JSON_COLOR_TEMPLATE) + 100);
     snprintf_P(buf, 
         sizeof(buf),
         ESPALEXA_DEVICE_JSON_TEMPLATE,
@@ -321,7 +326,10 @@ String ESPAlexaLights::deviceToJSON(LEDMode *mode, uint8_t id) {
         buf_col,
         colormode.c_str()
     );
-    return String(buf);
+    free(buf_col);
+    String json = String(buf);
+    free(buf);
+    return json;
 }
 
 String ESPAlexaLights::byteToHex(uint8_t num) {
