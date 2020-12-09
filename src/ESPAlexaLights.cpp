@@ -79,9 +79,9 @@ void ESPAlexaLights::serveDescription() {
     char s[16];
     sprintf(s, "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
 
-    #if HKLOGLEVEL == 0
+    #ifdef ALEXA_DEBUG
     IPAddress remoteIP = udpServer.remoteIP();
-    HKLOGDEBUG("[LEDHomeKit::serveDescription] remoteIP: %d.%d.%d.%d:%u\r\n", remoteIP[0], remoteIP[1], remoteIP[2], remoteIP[3], udpServer.remotePort());
+    AXLOGDEBUG("[LEDHomeKit::serveDescription] remoteIP: %d.%d.%d.%d:%u\r\n", remoteIP[0], remoteIP[1], remoteIP[2], remoteIP[3], udpServer.remotePort());
     #endif
 
     String escapedMac = WiFi.macAddress();
@@ -119,9 +119,9 @@ void ESPAlexaLights::serveNotFound() {
     String req = server->uri();
     String body = server->arg(0);
 
-    #if HKLOGLEVEL == 0
+    #ifdef ALEXA_DEBUG
     IPAddress remoteIP = server->client().remoteIP();
-    HKLOGDEBUG("[LEDHomeKit::serveNotFound] ip: %s url: %s body: %s\r\n", remoteIP.toString().c_str(), req.c_str(), body.c_str());
+    AXLOGDEBUG("[LEDHomeKit::serveNotFound] ip: %s url: %s body: %s\r\n", remoteIP.toString().c_str(), req.c_str(), body.c_str());
     #endif
     
     if (req.startsWith("/api")) {
@@ -143,7 +143,7 @@ bool ESPAlexaLights::serveList(const String &url, const String &body) {
     if (pos == -1) return false;
 
     uint id = url.substring(pos+7).toInt();
-    HKLOGDEBUG("[ALEXA] Handling list request id: %u\r\n", id);
+    AXLOGDEBUG("[ALEXA] Handling list request id: %u\r\n", id);
     String response;
     if (id == 0) {
         response += "{";
@@ -177,7 +177,7 @@ bool ESPAlexaLights::serveList(const String &url, const String &body) {
 		ESPALEXA_TCP_HEADERS,
 		PSTR("application/json"), response.length()
 	);
-    HKLOGDEBUG("[ALEXA] Response: %s\r\n", response.c_str());
+    AXLOGDEBUG("[ALEXA] Response: %s\r\n", response.c_str());
     server->sendContent(String(headers) + response);
     free(headers);
     return true;
@@ -188,7 +188,7 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
 
     int pos = url.indexOf("lights");
     if (pos == -1) return false;
-    HKLOGDEBUG("[ALEXA] Handling control request: %s\r\n", body.c_str());
+    AXLOGDEBUG("[ALEXA] Handling control request: %s\r\n", body.c_str());
 
     uint id = url.substring(pos+7).toInt();
     if (id <= 0) return false;
@@ -209,10 +209,10 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
     }
 
     if (body.indexOf("false") > 0) {
-        HKLOGDEBUG("[ALEXA] Mode \"%s\" stop\r\n", selectedDevice->getName().c_str());
+        AXLOGDEBUG("[ALEXA] Mode \"%s\" stop\r\n", selectedDevice->getName().c_str());
         static_cast<LEDAccessory *>(hk->getAccessory())->setOn(selectedDevice, HKValue(HKFormatBool, false));
     } else {
-        HKLOGDEBUG("[ALEXA] Mode \"%s\" start\r\n", selectedDevice->getName().c_str());
+        AXLOGDEBUG("[ALEXA] Mode \"%s\" start\r\n", selectedDevice->getName().c_str());
         static_cast<LEDAccessory *>(hk->getAccessory())->setOn(selectedDevice, HKValue(HKFormatBool, true));
     }
     pos = body.indexOf("bri");
@@ -229,21 +229,21 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
         } else {
             value *= 100.0/254.0;
         }
-        HKLOGDEBUG("[ALEXA] Mode \"%s\" brightness: %u orig: %u\r\n", selectedDevice->getName().c_str(), value, body.substring(pos + 5).toInt());
+        AXLOGDEBUG("[ALEXA] Mode \"%s\" brightness: %u orig: %u\r\n", selectedDevice->getName().c_str(), value, body.substring(pos + 5).toInt());
         static_cast<LEDAccessory *>(hk->getAccessory())->setBrightness(selectedDevice, HKValue(HKFormatInt, value));
     }
     pos = body.indexOf("hue");
     if (pos > 0) {
         float value = body.substring(pos + 5).toInt();
         value *= 360.0/65535.0;
-        HKLOGDEBUG("[ALEXA] Mode \"%s\" hue: %f orig: %u\r\n", selectedDevice->getName().c_str(), value, body.substring(pos + 5).toInt());
+        AXLOGDEBUG("[ALEXA] Mode \"%s\" hue: %f orig: %u\r\n", selectedDevice->getName().c_str(), value, body.substring(pos + 5).toInt());
         static_cast<LEDAccessory *>(hk->getAccessory())->setHue(selectedDevice, HKValue(HKFormatFloat, value));
     }
     pos = body.indexOf("sat");
     if (pos > 0) {
         float value = body.substring(pos + 5).toInt();
         value *= 100.0/254.0;
-        HKLOGDEBUG("[ALEXA] Mode \"%s\" saturation: %f orig: %u\r\n", selectedDevice->getName().c_str(), value, body.substring(pos + 5).toInt());
+        AXLOGDEBUG("[ALEXA] Mode \"%s\" saturation: %f orig: %u\r\n", selectedDevice->getName().c_str(), value, body.substring(pos + 5).toInt());
         static_cast<LEDAccessory *>(hk->getAccessory())->setSaturation(selectedDevice, HKValue(HKFormatFloat, value));
     }
 
@@ -264,14 +264,14 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
         PSTR("text/xml"), strlen(response)
     );
     server->sendContent(String(headers) + response);
-    HKLOGDEBUG("[ALEXA] Control request response: %s%s\r\n", headers, response);
+    AXLOGDEBUG("[ALEXA] Control request response: %s%s\r\n", headers, response);
     free(response);
     free(headers);
     return true;
 }
 
 bool ESPAlexaLights::serveDeviceType() {
-    HKLOGDEBUG("[ALEXA] Handling devicetype request\r\n");
+    AXLOGDEBUG("[ALEXA] Handling devicetype request\r\n");
     char *headers = (char *) malloc(sizeof(ESPALEXA_TCP_HEADERS_WITH_CONTENT) + 32 + strlen_P(ESPALEXA_DEVICE_TYPE_RESPONSE));
     size_t currentSize = sprintf_P(
         headers,

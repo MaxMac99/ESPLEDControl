@@ -14,6 +14,12 @@
 #ifndef HAP_SERVER_ALEXA_LIGHTS_H
 #define HAP_SERVER_ALEXA_LIGHTS_H
 
+#ifdef ALEXA_DEBUG
+#define AXLOGDEBUG(str, ...) Serial.printf_P(PSTR("[Alexa] [Debug ] " str), ## __VA_ARGS__)
+#else
+#define AXLOGDEBUG(...)
+#endif
+
 #include <WiFiUdp.h>
 #include <ESP8266WebServer.h>
 #include <ESPHomeKit.h>
