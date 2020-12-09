@@ -35,7 +35,9 @@ void LEDHomeKit::setup() {
     String name = "Max LED Strip";
     #endif
     auto accessory = new LEDAccessory(name, "LEDs", "2.0");
-    hk->setAccessory(accessory);
+
+    // HomeKit
+    hk->setup(accessory);
 
     // Wifi setup
     HKLOGINFO("[LEDHomeKit::setup] starting WiFi setup name: %s\r\n", hk->getName().c_str());
@@ -43,9 +45,8 @@ void LEDHomeKit::setup() {
     wiFiSetup->start();
     HKLOGINFO("[LEDHomeKit::setup] WiFiSetup started\r\n");
 
-    // HomeKit
-    hk->setup();
-
+    hk->begin();
+    
     #ifdef ALEXA_SUPPORT
     alexa->begin();
     #endif
@@ -76,7 +77,7 @@ void LEDHomeKit::setup() {
     #endif
 
     ArduinoOTA.begin();
-    
+
     HKLOGINFO("[LEDHomeKit::setup] Setup finished\r\n");
 }
 
