@@ -248,7 +248,7 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
         static_cast<LEDAccessory *>(hk->getAccessory())->setSaturation(selectedDevice, HKValue(HKFormatFloat, value));
     }
 
-    char *response = (char *) malloc(strlen_P(ESPALEXA_TCP_STATE_RESPONSE)+10);
+    char *response = (char *) malloc(strlen_P(ESPALEXA_TCP_STATE_RESPONSE)+20);
     sprintf_P(
         response,
         ESPALEXA_TCP_STATE_RESPONSE,
