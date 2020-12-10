@@ -142,7 +142,7 @@ bool ESPAlexaLights::serveList(const String &url, const String &body) {
     int pos = url.indexOf("lights");
     if (pos == -1) return false;
 
-    uint id = url.substring(pos+7).toInt();
+    uint32_t id = url.substring(pos+7).toInt();
     AXLOGDEBUG("[ALEXA] Handling list request id: %u\r\n", id);
     String response;
     if (id == 0) {
@@ -153,12 +153,13 @@ bool ESPAlexaLights::serveList(const String &url, const String &body) {
                 if (i > 0) {
                     response += ",";
                 }
-                response += "\"" + String(i+1) + "\":" + deviceToJSON(static_cast<LEDMode *>(service), i);
+                response += "\"" + String(encodeDeviceId(i+1)) + "\":" + deviceToJSON(static_cast<LEDMode *>(service), i);
                 i++;
             }
         }
         response += "}";
     } else {
+        id = decodeDeviceId(id);
         uint i = 0;
         for (auto service : hk->getAccessory()->getServices()) {
             if (service->getClassId() >= LEDMODE_CLASS_ID) {
@@ -190,9 +191,9 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
     if (pos == -1) return false;
     AXLOGDEBUG("[ALEXA] Handling control request: %s\r\n", body.c_str());
 
-    uint id = url.substring(pos+7).toInt();
-    if (id <= 0) return false;
-
+    uint32_t encodedId = url.substring(pos+7).toInt();
+    if (encodedId <= 0) return false;
+    uint8_t id = decodeDeviceId(encodedId);
     id--;
     LEDMode *selectedDevice = nullptr;
     uint i = 0;
@@ -251,9 +252,9 @@ bool ESPAlexaLights::serveControl(const String &url, const String &body) {
     sprintf_P(
         response,
         ESPALEXA_TCP_STATE_RESPONSE,
-        id+1,
+        encodedId,
         (static_cast<LEDAccessory *>(hk->getAccessory())->getOn(selectedDevice).boolValue)?"true":"false",
-        id+1,
+        encodedId,
         brightness
     );
 
@@ -319,18 +320,13 @@ String ESPAlexaLights::deviceToJSON(LEDMode *mode, uint8_t id) {
         brightness = 254;
     }
     
-    String mac = WiFi.macAddress();
-    mac.replace(":", "");
-    mac.toLowerCase();
-    mac.concat(mode->getName());
-    String uniqueid = makeMD5(mac).substring(0, 12);
-
+    uint32_t encodedId = encodeDeviceId(id+1);
     char *buf = (char *) malloc(strlen_P(ESPALEXA_DEVICE_JSON_TEMPLATE) + strlen_P(ESPALEXA_DEVICE_JSON_COLOR_TEMPLATE) + 100);
     sprintf_P(buf,
         ESPALEXA_DEVICE_JSON_TEMPLATE,
         type.c_str(),
         mode->getName().c_str(),
-        uniqueid.c_str(),
+        encodedId,
         modelid.c_str(),
         typeId,
         (static_cast<LEDAccessory *>(hk->getAccessory())->getOn(mode).boolValue)?"true":"false",
@@ -344,31 +340,15 @@ String ESPAlexaLights::deviceToJSON(LEDMode *mode, uint8_t id) {
     return json;
 }
 
-String ESPAlexaLights::byteToHex(uint8_t num) {
-    String hstring = String(num, HEX);
-    if (num < 16)
-    {
-        hstring = "0" + hstring;
-    }
-
-    return hstring;
+uint8_t ESPAlexaLights::decodeDeviceId(uint32_t id) {
+    return id & 0xF;
 }
 
-String ESPAlexaLights::makeMD5(const String &text) {
-    unsigned char bbuf[16];
-    String hash = "";
-    MD5Builder md5;
-    md5.begin();
-    md5.add(text);
-    md5.calculate();
-    
-    md5.getBytes(bbuf);
-    for (uint8_t i = 0; i < 16; i++)
-    {
-        hash += byteToHex(bbuf[i]);
-    }
-
-    return hash;
+uint32_t ESPAlexaLights::encodeDeviceId(uint8_t id) {
+    uint8_t mac[6];
+    WiFi.macAddress(mac);
+    uint32_t encoded = (mac[3] << 20) | (mac[4] << 12) | (mac[5] << 4) | (id & 0xF);
+    return encoded;
 }
 
 #endif

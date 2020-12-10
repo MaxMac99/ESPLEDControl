@@ -37,13 +37,13 @@ PROGMEM const char ESPALEXA_TCP_HEADERS_WITH_CONTENT[] =
     "Connection: close\r\n\r\n"
     "%S";
 PROGMEM const char ESPALEXA_TCP_STATE_RESPONSE[] = "["
-    "{\"success\":{\"/lights/%d/state/on\":%s}},"
-    "{\"success\":{\"/lights/%d/state/bri\":%d}}"   // not needed?
+    "{\"success\":{\"/lights/%u/state/on\":%s}},"
+    "{\"success\":{\"/lights/%u/state/bri\":%d}}"   // not needed?
     "]";
 PROGMEM const char ESPALEXA_DEVICE_JSON_TEMPLATE[] = "{"
         "\"type\":\"%s\","
         "\"name\":\"%s\","
-        "\"uniqueid\":\"%s\","
+        "\"uniqueid\":\"%u\","
         "\"modelid\":\"%s\","
         "\"manufacturername\":\"Philips\","
         "\"productname\":\"E%u\","
@@ -81,8 +81,8 @@ private:
     bool serveControl(const String &url, const String &body);
     bool serveDeviceType();
     String deviceToJSON(LEDMode *mode, uint8_t id);
-    String byteToHex(uint8_t num);
-    String makeMD5(const String &text);
+    uint32_t encodeDeviceId(uint8_t id);
+    uint8_t decodeDeviceId(uint32_t id);
 private:
     ESPHomeKit *hk;
     ESP8266WebServer *server;
