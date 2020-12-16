@@ -15,12 +15,12 @@ void LEDModeRainbowCycle::setup() {
 }
 
 uint16_t LEDModeRainbowCycle::getWheelColor(uint16_t index, uint16_t hue) {
-    return float((hue + (index * RAINBOW_CYCLE_HUE_DELTA) % 360) % 360);
+    return float(int(float(hue) + int(float(index) * float(RAINBOW_CYCLE_HUE_DELTA)) % 360) % 360);
 }
 
 void LEDModeRainbowCycle::handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param) {
     if (hueAnimationEnabled) {
-        HSIColor color = HSIColor::linearBlend<HueBlendShortestDistance>(startColor, endColor, param.progress);
+        HSIColor color = HSIColor::linearBlend<HueBlendClockwiseDirection>(startColor, endColor, param.progress);
         currentBrightness = color.intensity;
         LEDHomeKit::shared()->getStrip()->setPixelColor(index, color);
         if (!LEDHomeKit::shared()->getStrip()->isAnimating() && index == NUM_LEDS - 1) {
@@ -38,9 +38,9 @@ void LEDModeRainbowCycle::start(bool cleanStart) {
         LEDHomeKit::shared()->getStrip()->clearTo(HSIColor(0, 100, 0));
     } else {
         hue = LEDHomeKit::shared()->getStrip()->getPixelColor(0).hue;
-    for (int i = 0; i < NUM_LEDS; i++) {
-        LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, HSIColor(getWheelColor(i, hue), 100, brightness));
-    }
+        for (int i = 0; i < NUM_LEDS; i++) {
+            LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, HSIColor(getWheelColor(i, hue), 100, brightness));
+        }
     }
     hueAnimationEnabled = !cleanStart;
 
@@ -65,7 +65,11 @@ void LEDModeRainbowCycle::update() {
 void LEDModeRainbowCycle::stop() {
     HKLOGINFO("Stopping Rainbow Cycle\r\n");
     hueAnimationEnabled = true;
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, 100, 0));
+    hue = (hue+1) % 360;
+    for (int i = 0; i < NUM_LEDS; i++) {
+        HSIColor color(getWheelColor(i, hue), 100, 0);
+        LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, color);
+    }
     LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeRainbowCycle::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 

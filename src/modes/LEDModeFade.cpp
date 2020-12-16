@@ -23,7 +23,7 @@ void LEDModeFade::setup() {
 
 void LEDModeFade::handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param) {
     if (hueAnimationEnabled) {
-        HSIColor color = HSIColor::linearBlend<HueBlendShortestDistance>(startColor, endColor, param.progress);
+        HSIColor color = HSIColor::linearBlend<HueBlendClockwiseDirection>(startColor, endColor, param.progress);
         currentBrightness = color.intensity;
         LEDHomeKit::shared()->getStrip()->setPixelColor(index, color);
         if (!LEDHomeKit::shared()->getStrip()->isAnimating() && index == NUM_LEDS - 1) {
