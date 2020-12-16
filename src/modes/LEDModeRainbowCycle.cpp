@@ -31,12 +31,19 @@ void LEDModeRainbowCycle::handleAnimation(const uint16_t index, const HSIColor &
     }
 }
 
-void LEDModeRainbowCycle::start() {
+void LEDModeRainbowCycle::start(bool cleanStart) {
     HKLOGINFO("Starting Rainbow Cycle\r\n");
+    if (cleanStart) {
+        currentBrightness = 0;
+        LEDHomeKit::shared()->getStrip()->clearTo(HSIColor(0, 100, 0));
+    } else {
+        hue = LEDHomeKit::shared()->getStrip()->getPixelColor(0).hue;
     for (int i = 0; i < NUM_LEDS; i++) {
         LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, HSIColor(getWheelColor(i, hue), 100, brightness));
     }
-    hueAnimationEnabled = true;
+    }
+    hueAnimationEnabled = !cleanStart;
+
     LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeRainbowCycle::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 

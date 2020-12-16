@@ -26,11 +26,14 @@ void LEDModePulse::handleAnimation(const uint16_t index, const HSIColor &startCo
     }
 }
 
-void LEDModePulse::start() {
+void LEDModePulse::start(bool cleanStart) {
     HKLOGINFO("Starting Pulse\r\n");
-    isRunning = false;
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(0, 0, 0));
-    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModePulse::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    pulseStep = 0;
+    isRunning = cleanStart;
+    if (!cleanStart) {
+        LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(0, 0, 0));
+        LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModePulse::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    }
 }
 
 void LEDModePulse::update() {

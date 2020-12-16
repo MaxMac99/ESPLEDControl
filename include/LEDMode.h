@@ -28,7 +28,7 @@ public:
     virtual uint getClassId() { return LEDMODE_CLASS_ID; };
 
     virtual void setup() = 0;
-    virtual void start() = 0;
+    virtual void start(bool cleanStart) = 0;
     virtual void update() = 0;
     virtual void stop() = 0;
     virtual unsigned long getUpdateInterval() const { return 0; };
@@ -45,7 +45,7 @@ protected:
     void addSaturationCharacteristic();
 private:
     void setupCharacteristics();
-    void turnOn();
+    void turnOn(bool cleanStart);
     void turnOff();
     friend LEDAccessory;
 protected:

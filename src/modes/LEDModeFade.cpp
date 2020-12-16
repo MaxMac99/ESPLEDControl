@@ -35,10 +35,13 @@ void LEDModeFade::handleAnimation(const uint16_t index, const HSIColor &startCol
     }
 }
 
-void LEDModeFade::start() {
+void LEDModeFade::start(bool cleanStart) {
     HKLOGINFO("Starting Fade\r\n");
+    if (!cleanStart) {
+        hue = LEDHomeKit::shared()->getStrip()->getPixelColor(NUM_LEDS-1).hue;
+    }
     LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, 100, brightness));
-    hueAnimationEnabled = true;
+    hueAnimationEnabled = !cleanStart;
     LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeFade::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 

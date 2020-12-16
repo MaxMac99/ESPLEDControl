@@ -31,14 +31,16 @@ void LEDModeFire::handleAnimation(const uint16_t index, const HSIColor &startCol
     }
 }
 
-void LEDModeFire::start() {
+void LEDModeFire::start(bool cleanStart) {
     HKLOGINFO("Starting Fire\r\n");
-    isRunning = false;
+    isRunning = cleanStart;
     for (unsigned char & heat : heats) {
         heat = 0;
     }
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(0, 0, 0));
-    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeFire::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    if (!cleanStart) {
+        LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(0, 0, 0));
+        LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeFire::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    }
 }
 
 void LEDModeFire::update() {

@@ -15,7 +15,7 @@ class LEDModeStatic : public LEDMode {
 public:
     explicit LEDModeStatic(LEDAccessory *accessory, bool primary=false);
     virtual void setup() override;
-    virtual void start() override;
+    virtual void start(bool cleanStart) override;
     virtual void update() override;
     virtual void stop() override;
     virtual uint8_t getBrightness() override;

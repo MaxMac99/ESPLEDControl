@@ -22,7 +22,7 @@ class LEDModePulse : public LEDMode {
 public:
     explicit LEDModePulse(LEDAccessory *accessory, bool primary=false);
     virtual void setup();
-    virtual void start();
+    virtual void start(bool cleanStart);
     virtual void update();
     virtual void stop();
     virtual unsigned long getUpdateInterval() const;

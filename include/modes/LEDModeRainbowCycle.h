@@ -25,7 +25,7 @@ class LEDModeRainbowCycle : public LEDMode {
 public:
     explicit LEDModeRainbowCycle(LEDAccessory *accessory, bool primary=false);
     void setup() override;
-    void start() override;
+    void start(bool cleanStart) override;
     void update() override;
     void stop() override;
     unsigned long getUpdateInterval() const override;

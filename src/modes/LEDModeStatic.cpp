@@ -19,8 +19,11 @@ void LEDModeStatic::handleAnimation(const uint16_t index, const HSIColor &startC
     LEDHomeKit::shared()->getStrip()->setPixelColor(index, HSIColor::linearBlend<HueBlendShortestDistance>(startColor, endColor, param.progress));
 }
 
-void LEDModeStatic::start() {
+void LEDModeStatic::start(bool cleanStart) {
     HKLOGINFO("Starting Static\r\n");
+    if (cleanStart) {
+        LEDHomeKit::shared()->getStrip()->clearTo(HSIColor(hue, saturation, 0));
+    }
     LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
     LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }

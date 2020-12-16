@@ -44,12 +44,14 @@ void LEDAccessory::setOn(LEDMode *mode, const HKValue& value) {
     if (on == value.boolValue && currentMode == mode) {
         return;
     }
+    bool cleanStart = true;
     if (value.boolValue && currentMode != mode && mode != nullptr) {
         currentMode->turnOff();
         currentMode = mode;
+        cleanStart = false;
     }
     if (value.boolValue) {
-        currentMode->turnOn();
+        currentMode->turnOn(cleanStart);
         on = true;
     } else if (currentMode == mode) {
         currentMode->turnOff();

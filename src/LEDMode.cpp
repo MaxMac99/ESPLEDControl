@@ -21,14 +21,14 @@ void LEDMode::setupCharacteristics() {
     setup();
 }
 
-void LEDMode::turnOn() {
+void LEDMode::turnOn(bool cleanStart) {
     if (HKCharacteristic *characteristic = getCharacteristic(HKCharacteristicOn)) {
         characteristic->notify(HKValue(HKFormatBool, true));
     }
     if (getCharacteristic(HKCharacteristicOn) != nullptr && getBrightness() == 0) {
         this->setBrightness(100);
     }
-    start();
+    start(cleanStart);
 }
 
 void LEDMode::turnOff() {
