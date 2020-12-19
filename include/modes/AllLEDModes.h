@@ -14,6 +14,7 @@
 #include "LEDModeFire.h"
 #include "LEDModeBouncingBalls.h"
 #include "LEDModeMeteor.h"
+#include "LEDModeRandom.h"
 
 inline std::vector<LEDMode *> generateModes(LEDAccessory *accessory) {
     std::vector<LEDMode *> modes;
@@ -44,6 +45,10 @@ inline std::vector<LEDMode *> generateModes(LEDAccessory *accessory) {
 
     #ifdef MODE_METEOR
     modes.push_back(new LEDModeMeteor(accessory));
+    #endif
+
+    #ifdef MODE_RANDOM
+    modes.push_back(new LEDModeRandom(accessory));
     #endif
     return modes;
 }
