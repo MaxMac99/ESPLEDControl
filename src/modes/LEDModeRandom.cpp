@@ -31,7 +31,7 @@ void LEDModeRandom::setup() {
 
 void LEDModeRandom::handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param) {
     if (hueAnimationEnabled) {
-        HSIColor color = HSIColor::linearBlend<HueBlendClockwiseDirection>(startColor, endColor, param.progress);
+        HSIColor color = HSIColor::linearBlend<HueBlendShortestDistance>(startColor, endColor, param.progress);
         currentBrightness = color.intensity;
         LEDHomeKit::shared()->getStrip()->setPixelColor(index, color);
         if (!LEDHomeKit::shared()->getStrip()->isAnimating() && index == NUM_LEDS - 1) {
@@ -72,18 +72,24 @@ void LEDModeRandom::start(bool cleanStart) {
     } else {
         HeatPoint *currentPoint = heatPoints;
         for (int i = 0; i < NUM_LEDS; i++) {
-            if (float(i) >= currentPoint->getCurrentPos() || float(i) <= currentPoint->getCurrentEndPos()) {
-                LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, currentPoint->getCurrentColor().asHSI(currentBrightness));
+            if (i >= currentPoint->getCurrentPos() || i < currentPoint->getCurrentEndPos()) {
+                HSIColor color = currentPoint->getCurrentColor().asHSI(brightness);
+                LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, color);
                 continue;
             }
-            if (i > currentPoint->getCurrentEndPos()) {
+            if (i >= currentPoint->getNext()->getCurrentPos()) {
+                HSIColor color = currentPoint->getNext()->getCurrentColor().asHSI(brightness);
+                LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, color);
                 currentPoint = currentPoint->getNext();
+                continue;
             }
+
             float progress = (float(i) - currentPoint->getCurrentEndPos()) / (currentPoint->getNext()->getCurrentPos() - currentPoint->getCurrentEndPos());
             HSIColor color = currentPoint->getCurrentColor().asHSI(brightness);
             HSIColor nextColor = currentPoint->getNext()->getCurrentColor().asHSI(brightness);
             
-            LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, HSIColor::linearBlend<HueBlendShortestDistance>(color, nextColor, progress));
+            HSIColor hsiColor = HSIColor::linearBlend<HueBlendShortestDistance>(color, nextColor, progress);
+            LEDHomeKit::shared()->getStrip()->setEndColorPixel(i, hsiColor);
         }
     }
     hueAnimationEnabled = !cleanStart;
@@ -92,7 +98,7 @@ void LEDModeRandom::start(bool cleanStart) {
 
 void LEDModeRandom::update() {
     HeatPoint *point = heatPoints;
-    if (point != nullptr) {
+    if (!hueAnimationEnabled && point != nullptr) {
         while (point->getNext() != nullptr) {
             point->update();
             point = point->getNext();
