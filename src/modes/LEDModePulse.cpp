@@ -59,33 +59,39 @@ uint8_t LEDModePulse::getBrightness() {
     return brightness;
 }
 
-void LEDModePulse::setBrightness(uint8_t brightness) {
-    LEDMode::setBrightness(brightness);
+void LEDModePulse::setBrightness(uint8_t brightness, bool update) {
+    LEDMode::setBrightness(brightness, update);
     LEDModePulse::brightness = brightness;
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
-    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModePulse::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    if (update) {
+        LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
+        LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModePulse::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    }
 }
 
 float LEDModePulse::getHue() {
     return hue;
 }
 
-void LEDModePulse::setHue(float hue) {
-    LEDMode::setHue(hue);
+void LEDModePulse::setHue(float hue, bool update) {
+    LEDMode::setHue(hue, update);
     LEDModePulse::hue = hue;
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
-    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModePulse::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    if (update) {
+        LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
+        LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModePulse::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    }
 }
 
 float LEDModePulse::getSaturation() {
     return saturation;
 }
 
-void LEDModePulse::setSaturation(float saturation) {
-    LEDMode::setSaturation(saturation);
+void LEDModePulse::setSaturation(float saturation, bool update) {
+    LEDMode::setSaturation(saturation, update);
     LEDModePulse::saturation = saturation;
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
-    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModePulse::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    if (udpate) {
+        LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
+        LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModePulse::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    }
 }
 
 #endif

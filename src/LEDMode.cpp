@@ -26,7 +26,7 @@ void LEDMode::turnOn(bool cleanStart) {
         characteristic->notify(HKValue(HKFormatBool, true));
     }
     if (getCharacteristic(HKCharacteristicOn) != nullptr && getBrightness() == 0) {
-        this->setBrightness(100);
+        this->setBrightness(100, true);
     }
     start(cleanStart);
 }
@@ -59,19 +59,19 @@ void LEDMode::addSaturationCharacteristic() {
     addCharacteristic(saturationChar);
 }
 
-void LEDMode::setBrightness(uint8_t brightness) {
+void LEDMode::setBrightness(uint8_t brightness, bool update) {
     #ifdef ALEXA_SUPPORT
     getCharacteristic(HKCharacteristicBrightness)->notify(HKValue(HKFormatInt, brightness));
     #endif
 }
 
-void LEDMode::setHue(float hue) {
+void LEDMode::setHue(float hue, bool update) {
     #ifdef ALEXA_SUPPORT
     getCharacteristic(HKCharacteristicHue)->notify(HKValue(HKFormatFloat, hue));
     #endif
 }
 
-void LEDMode::setSaturation(float saturation) {
+void LEDMode::setSaturation(float saturation, bool update) {
     #ifdef ALEXA_SUPPORT
     getCharacteristic(HKCharacteristicSaturation)->notify(HKValue(HKFormatFloat, saturation));
     #endif

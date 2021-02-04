@@ -19,11 +19,11 @@ public:
     virtual void update() override;
     virtual void stop() override;
     virtual uint8_t getBrightness() override;
-    virtual void setBrightness(uint8_t brightness) override;
+    virtual void setBrightness(uint8_t brightness, bool update) override;
     virtual float getHue() override;
-    virtual void setHue(float hue) override;
+    virtual void setHue(float hue, bool update) override;
     virtual float getSaturation() override;
-    virtual void setSaturation(float saturation) override;
+    virtual void setSaturation(float saturation, bool update) override;
     void handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param);
 private:
     uint8_t brightness;

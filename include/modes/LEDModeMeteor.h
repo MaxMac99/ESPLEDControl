@@ -30,7 +30,7 @@ public:
     void stop() override;
     unsigned long getUpdateInterval() const override;
     uint8_t getBrightness() override;
-    void setBrightness(uint8_t brightness) override;
+    void setBrightness(uint8_t brightness, bool update) override;
     void meteor();
     void handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param);
 private:

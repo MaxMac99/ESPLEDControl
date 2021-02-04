@@ -33,11 +33,11 @@ public:
     virtual void stop() = 0;
     virtual unsigned long getUpdateInterval() const { return 0; };
     virtual uint8_t getBrightness() { return 0; }; // 0 - 100
-    virtual void setBrightness(uint8_t brightness); // 0 - 100
+    virtual void setBrightness(uint8_t brightness, bool update); // 0 - 100
     virtual float getHue() { return 0; }; // 0 - 360
-    virtual void setHue(float hue); // 0 - 360
+    virtual void setHue(float hue, bool update); // 0 - 360
     virtual float getSaturation() { return 0; }; // 0 - 100
-    virtual void setSaturation(float saturation); // 0 - 100
+    virtual void setSaturation(float saturation, bool update); // 0 - 100
 protected:
     void addNameCharacteristic(const char *name);
     void addBrightnessCharacteristic();

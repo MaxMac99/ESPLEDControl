@@ -41,33 +41,42 @@ uint8_t LEDModeStatic::getBrightness() {
     return brightness;
 }
 
-void LEDModeStatic::setBrightness(uint8_t brightness) {
-    LEDMode::setBrightness(brightness);
+void LEDModeStatic::setBrightness(uint8_t brightness, bool update) {
+    LEDMode::setBrightness(brightness, update);
     LEDModeStatic::brightness = brightness;
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
-    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    HKLOGDEBUG("[Static] Set brightness to %d with update %d\r\n", brightness, update);
+    if (update) {
+        LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
+        LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    }
 }
 
 float LEDModeStatic::getHue() {
     return hue;
 }
 
-void LEDModeStatic::setHue(float hue) {
-    LEDMode::setHue(hue);
+void LEDModeStatic::setHue(float hue, bool update) {
+    LEDMode::setHue(hue, update);
     LEDModeStatic::hue = hue;
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
-    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    HKLOGDEBUG("[Static] Set hue to %f with update %d\r\n", hue, update);
+    if (update) {
+        LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
+        LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    }
 }
 
 float LEDModeStatic::getSaturation() {
     return saturation;
 }
 
-void LEDModeStatic::setSaturation(float saturation) {
-    LEDMode::setSaturation(saturation);
+void LEDModeStatic::setSaturation(float saturation, bool update) {
+    LEDMode::setSaturation(saturation, update);
     LEDModeStatic::saturation = saturation;
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
-    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    HKLOGDEBUG("[Static] Set saturation to %f with update %d\r\n", saturation, update);
+    if (update) {
+        LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, saturation, brightness));
+        LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeStatic::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    }
 }
 
 #endif

@@ -59,12 +59,12 @@ uint8_t LEDModeMeteor::getBrightness() {
     return brightness;
 }
 
-void LEDModeMeteor::setBrightness(uint8_t brightness) {
-    LEDMode::setBrightness(brightness);
+void LEDModeMeteor::setBrightness(uint8_t brightness, bool update) {
+    LEDMode::setBrightness(brightness, update);
     startBrightness = currentBrightness;
     LEDModeMeteor::brightness = brightness;
     HKLOGDEBUG("[Meteor::setBrightness] to: %u\r\n", brightness);
-    if (isRunning) {
+    if (update && isRunning) {
         LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(0, 0, brightness));
         LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeMeteor::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
     }

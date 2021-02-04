@@ -74,9 +74,7 @@ void LEDAccessory::setBrightness(LEDMode *mode, const HKValue &value) {
     } else if (!on) {
         setOn(mode, HKValue(HKFormatBool, true));
     }
-    if (on) {
-        mode->setBrightness(value.intValue);
-    }
+    mode->setBrightness(value.intValue, on);
 }
 
 HKValue LEDAccessory::getBrightness(LEDMode *mode) {
@@ -84,10 +82,7 @@ HKValue LEDAccessory::getBrightness(LEDMode *mode) {
 }
 
 void LEDAccessory::setHue(LEDMode *mode, const HKValue &value) {
-    if (currentMode && currentMode != mode) {
-        return;
-    }
-    mode->setHue(value.floatValue);
+    mode->setHue(value.floatValue, !(currentMode != nullptr && currentMode != mode));
 }
 
 HKValue LEDAccessory::getHue(LEDMode *mode) {
@@ -95,10 +90,7 @@ HKValue LEDAccessory::getHue(LEDMode *mode) {
 }
 
 void LEDAccessory::setSaturation(LEDMode *mode, const HKValue &value) {
-    if (currentMode && currentMode != mode) {
-        return;
-    }
-    mode->setSaturation(value.floatValue);
+    mode->setSaturation(value.floatValue, !(currentMode != nullptr && currentMode != mode));
 }
 
 HKValue LEDAccessory::getSaturation(LEDMode *mode) {

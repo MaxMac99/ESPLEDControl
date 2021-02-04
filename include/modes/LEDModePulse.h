@@ -27,11 +27,11 @@ public:
     virtual void stop();
     virtual unsigned long getUpdateInterval() const;
     virtual uint8_t getBrightness();
-    virtual void setBrightness(uint8_t brightness);
+    virtual void setBrightness(uint8_t brightness, bool update);
     virtual float getHue();
-    virtual void setHue(float hue);
+    virtual void setHue(float hue, bool update);
     virtual float getSaturation();
-    virtual void setSaturation(float saturation);
+    virtual void setSaturation(float saturation, bool update);
     void handleAnimation(const uint16_t index, const HSIColor &startColor, const HSIColor &endColor, const AnimationParam &param);
 private:
     uint8_t brightness;

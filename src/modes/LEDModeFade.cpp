@@ -73,11 +73,13 @@ uint8_t LEDModeFade::getBrightness() {
     return brightness;
 }
 
-void LEDModeFade::setBrightness(uint8_t brightness) {
-    LEDMode::setBrightness(brightness);
+void LEDModeFade::setBrightness(uint8_t brightness, bool update) {
+    LEDMode::setBrightness(brightness, update);
     LEDModeFade::brightness = brightness;
-    LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, 100, brightness));
-    LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeFade::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    if (update) {
+        LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(hue, 100, brightness));
+        LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeFade::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    }
 }
 
 #endif

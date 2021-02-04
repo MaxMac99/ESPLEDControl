@@ -64,12 +64,11 @@ uint8_t LEDModeFire::getBrightness() {
     return brightness;
 }
 
-void LEDModeFire::setBrightness(uint8_t brightness) {
-    LEDMode::setBrightness(brightness);
+void LEDModeFire::setBrightness(uint8_t brightness, bool update) {
+    LEDMode::setBrightness(brightness, update);
     startBrightness = currentBrightness;
     LEDModeFire::brightness = brightness;
-    HKLOGDEBUG("[Fire::setBrightness] to: %u\r\n", brightness);
-    if (isRunning) {
+    if (update && isRunning) {
         LEDHomeKit::shared()->getStrip()->clearEndColorTo(HSIColor(0, 0, brightness));
         LEDHomeKit::shared()->getStrip()->startAnimation(500, std::bind(&LEDModeFire::handleAnimation, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
     }
