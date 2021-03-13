@@ -66,6 +66,7 @@ def main():
     parser.add_argument("--setupid", type=str, default=None)
     parser.add_argument("--category", type=int, default=5)
     parser.add_argument("--filename", type=str, default="qrcode")
+    parser.add_argument("--qrcode", action="store_true")
     args = parser.parse_args()
 
     if args.password is None:
@@ -79,9 +80,10 @@ def main():
             setup_id = ""
     print(f"-D HKPASSWORD=\\\"{password}\\\"")
     print(f"-D HKSETUPID=\\\"{setup_id}\\\"")
-    setupURI = gen_homekit_setup_uri(args.category, password, setup_id)
-    qrcodeImage = gen_homekit_qrcode(setupURI, password)
-    qrcodeImage.save(f"{args.filename}.png")
+    if args.qrcode:
+        setupURI = gen_homekit_setup_uri(args.category, password, setup_id)
+        qrcodeImage = gen_homekit_qrcode(setupURI, password)
+        qrcodeImage.save(f"{args.filename}.png")
 
 
 if __name__ == '__main__':
